@@ -1,118 +1,22 @@
+{% extends "meeting-system-base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>人员管理 - 会议与人员管理系统</title>
-  <!-- Bootstrap 3 CSS -->
-  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-  <link rel="stylesheet" href="{% static 'vue/chunk-style.css' %}">
-  <style>
-    body {
-      background-color: #f5f6fa;
-    }
-    .page-header {
-      padding: 1.5rem 0 1rem;
-    }
-    .card {
-      border-radius: 0.75rem;
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
-      border: none;
-    }
-    .table thead th {
-      background-color: #f1f3f5;
-      font-weight: 600;
-    }
-    .table tbody tr:hover {
-      background-color: #f8f9fa;
-    }
-    .form-section-title {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: #6c757d;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.25rem;
-    }
-    .badge-role {
-      font-size: 0.8rem;
-    }
-    .inline-form-delete {
-      display: inline-block;
-      margin-left: 4px;
-      vertical-align: middle;
-    }
-  </style>
-</head>
-<body>
-  <!-- 顶部导航栏 -->
-  <nav class="navbar navbar-inverse">
-    <div class="container">
-      <a class="navbar-brand" href="/">会议与人员管理系统</a>
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbarNav" aria-expanded="false" aria-label="切换导航">
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="nav navbar-nav navbar-right">
-          <li class="nav-item">
-            <a class="nav-link" href="/">首页</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/meetings">会议管理</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="/people">人员管理</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/departments">部门管理</a>
-          </li>
-          <li class="dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-              {{ user.username|default:"用户" }} <span class="caret"></span>
-            </a>
-            <ul class="dropdown-menu">
-              <li>
-                <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">退出登录</a>
-              </li>
-            </ul>
-          </li>
-        </ul>
-        <form id="logout-form" method="post" action="{% url 'logout' %}" style="display: none;">
-          {% csrf_token %}
-        </form>
-      </div>
-    </div>
-  </nav>
 
+{% block title %}人员管理 - 会议与人员管理系统{% endblock %}
+
+{% block extra_css %}
+<style>
+  .badge-role {
+    font-size: 0.8rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
   <main class="container my-4">
-    {% if messages %}
-    {% for message in messages %}
-    <div class="alert {% if message.level_tag == 'error' %}alert-danger{% elif message.level_tag == 'success' %}alert-success{% else %}alert-info{% endif %} alert-dismissible" role="alert">
-      <button type="button" class="close" data-dismiss="alert" aria-label="关闭"><span aria-hidden="true">&times;</span></button>
-      {{ message }}
-    </div>
-    {% endfor %}
-    {% endif %}
-    <!-- 页头与操作栏 -->
-    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-      <div>
-        <h3 class="mb-0">人员管理</h3>
-        <small class="text-muted">维护人员基本信息、部门信息及角色权限。</small>
-      </div>
-      <div class="d-flex gap-2">
-        <div id="vue-people-toolbar"
-             data-api-url="{% url 'api_person_create' %}"
-             data-full-page-url="{% url 'person_create' %}"></div>
-        <button type="button" class="btn btn-default">
-          批量导入
-        </button>
-      </div>
-    </div>
+    {% include "flash_messages.html" %}
+    {% include "page_header.html" with page_title='人员管理' page_subtitle='维护人员基本信息、部门信息及角色权限。' page_header_inner_classes='flex-wrap gap-2' header_actions_template='meeting-system-people_header_actions.html' header_actions_classes='d-flex gap-2' %}
 
-    <!-- 查询筛选区 -->
+
     <div class="card mb-3">
       <div class="card-body">
         <div class="form-section-title">查询条件</div>
@@ -150,7 +54,6 @@
       </div>
     </div>
 
-    <!-- 人员列表 -->
     <div class="card">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -205,52 +108,13 @@
           </table>
         </div>
 
-        {% if person_list.paginator.num_pages > 1 %}
-        <nav class="mt-3">
-          <ul class="pagination pagination-sm pull-right mb-0">
-            {% if person_list.has_previous %}
-            <li>
-              <a href="?{% if request.GET.q %}q={{ request.GET.q|urlencode }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department|urlencode }}&{% endif %}{% if request.GET.role %}role={{ request.GET.role|urlencode }}&{% endif %}page={{ person_list.previous_page_number }}">上一页</a>
-            </li>
-            {% else %}
-            <li class="disabled">
-              <span>上一页</span>
-            </li>
-            {% endif %}
-
-            {% for num in person_list.paginator.page_range %}
-              {% if person_list.number == num %}
-              <li class="active"><span>{{ num }}</span></li>
-              {% else %}
-              <li><a href="?{% if request.GET.q %}q={{ request.GET.q|urlencode }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department|urlencode }}&{% endif %}{% if request.GET.role %}role={{ request.GET.role|urlencode }}&{% endif %}page={{ num }}">{{ num }}</a></li>
-              {% endif %}
-            {% endfor %}
-
-            {% if person_list.has_next %}
-            <li>
-              <a href="?{% if request.GET.q %}q={{ request.GET.q|urlencode }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department|urlencode }}&{% endif %}{% if request.GET.role %}role={{ request.GET.role|urlencode }}&{% endif %}page={{ person_list.next_page_number }}">下一页</a>
-            </li>
-            {% else %}
-            <li class="disabled">
-              <span>下一页</span>
-            </li>
-            {% endif %}
-          </ul>
-          <div class="clearfix"></div>
-          <div class="text-muted small text-right" style="margin-top: 8px;">
-            显示第 {{ person_list.start_index }} - {{ person_list.end_index }} 条，共 {{ person_list.paginator.count }} 条记录
-          </div>
-        </nav>
-        {% endif %}
+        {% include "pagination.html" with page_obj=person_list %}
       </div>
     </div>
   </main>
+{% endblock %}
 
-  <!-- jQuery 和 Bootstrap 3 JS -->
-  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-  <script type="module" src="{% static 'vue/people-modal.js' %}"></script>
-  <script type="module" src="{% static 'vue/people-edit-modal.js' %}"></script>
-</body>
-</html>
-
+{% block extra_js %}
+<script type="module" src="{% static 'vue/people-modal.js' %}"></script>
+<script type="module" src="{% static 'vue/people-edit-modal.js' %}"></script>
+{% endblock %}

@@ -1,19 +1,13 @@
-import { createApp } from 'vue'
 import PersonEditModal from './components/PersonEditModal.vue'
+import { mountBySelector } from './modal-utils.js'
 
-// Find all edit modal containers and mount them
-document.addEventListener('DOMContentLoaded', () => {
-  const editModalElements = document.querySelectorAll('[data-vue-edit-modal]')
-
-  editModalElements.forEach(el => {
-    const personId = el.dataset.personId
-    const apiUrl = el.dataset.apiUrl || '/api/people/'
-
-    if (personId) {
-      createApp(PersonEditModal, {
-        personId: parseInt(personId),
-        apiUrl,
-      }).mount(el)
-    }
-  })
+mountBySelector('[data-vue-edit-modal]', PersonEditModal, (el) => {
+  const personId = el.dataset.personId
+  if (!personId) {
+    return null
+  }
+  return {
+    personId: parseInt(personId, 10),
+    apiUrl: el.dataset.apiUrl || '/api/people/',
+  }
 })

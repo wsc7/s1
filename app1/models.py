@@ -190,6 +190,72 @@ class MeetingAttachment(models.Model):
         return self.filename
 
 
+class MeetingAgendaItem(models.Model):
+    """会议事项"""
+
+    STATUS_NOT_STARTED = 'not_started'
+    STATUS_IN_PROGRESS = 'in_progress'
+    STATUS_FINISHED = 'finished'
+    STATUS_CHOICES = [
+        (STATUS_NOT_STARTED, '未开始'),
+        (STATUS_IN_PROGRESS, '进行中'),
+        (STATUS_FINISHED, '已结束'),
+    ]
+
+    meeting = models.ForeignKey(
+        Meeting,
+        on_delete=models.CASCADE,
+        related_name='agenda_items',
+        verbose_name='会议',
+    )
+    title = models.CharField('事项', max_length=200)
+    start_time = models.DateTimeField('开始时间')
+    end_time = models.DateTimeField('结束时间')
+    status = models.CharField(
+        '状态',
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_NOT_STARTED,
+    )
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        ordering = ['start_time', 'id']
+        verbose_name = '会议事项'
+        verbose_name_plural = '会议事项'
+
+    def __str__(self):
+        return self.title
+
+
+class MeetingAgendaItemAssignee(models.Model):
+    """会议事项完成人员"""
+
+    agenda_item = models.ForeignKey(
+        MeetingAgendaItem,
+        on_delete=models.CASCADE,
+        related_name='assignees',
+        verbose_name='会议事项',
+    )
+    person = models.ForeignKey(
+        Person,
+        on_delete=models.CASCADE,
+        related_name='agenda_item_assignments',
+        verbose_name='人员',
+    )
+    is_completed = models.BooleanField('是否完成', default=False)
+
+    class Meta:
+        unique_together = ['agenda_item', 'person']
+        ordering = ['person__name']
+        verbose_name = '会议事项人员'
+        verbose_name_plural = '会议事项人员'
+
+    def __str__(self):
+        return f"{self.agenda_item.title} - {self.person.name}"
+
+
 class Notification(models.Model):
     """通知消息"""
 

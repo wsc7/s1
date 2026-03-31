@@ -17,11 +17,15 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from datetime import timedelta
 
-from .forms import MeetingForm, PersonForm, MeetingAttendeesForm, MeetingAttachmentForm, NotificationForm, ReminderSettingForm, PersonProfileForm, UserProfileForm, CustomPasswordChangeForm, DepartmentForm
-from .models import Meeting, Person, MeetingAttendee, MeetingAttachment, Notification, ReminderSetting, Department
+from .forms import MeetingForm, PersonForm, MeetingAttendeesForm, MeetingAttachmentForm, NotificationForm, ReminderSettingForm, PersonProfileForm, UserProfileForm, CustomPasswordChangeForm, DepartmentForm, MeetingAgendaItemForm
+from .models import Meeting, Person, MeetingAttendee, MeetingAttachment, Notification, ReminderSetting, Department, MeetingAgendaItem, MeetingAgendaItemAssignee
 
 
-def home(request):
+INVALID_JSON_RESPONSE = {'ok': False, 'errors': {'_': ['无效的 JSON']}}
+METHOD_NOT_ALLOWED_RESPONSE = {'ok': False, 'errors': {'_': ['不支持的请求方法']}}
+
+
+def _render_home(request):
     return render(
         request,
         'meeting-system-index.html',
@@ -30,6 +34,43 @@ def home(request):
             'meeting_count': Meeting.objects.count(),
         },
     )
+
+
+def _parse_json_request(request):
+    try:
+        return json.loads(request.body.decode('utf-8')), None
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None, JsonResponse(INVALID_JSON_RESPONSE, status=400)
+
+
+def _method_not_allowed_json_response():
+    return JsonResponse(METHOD_NOT_ALLOWED_RESPONSE, status=405)
+
+
+def _save_form_json_response(form):
+    if form.is_valid():
+        form.save()
+        return JsonResponse({'ok': True})
+    return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
+
+
+def _recalculate_attendee_count(meeting):
+    meeting.attendee_count = meeting.attendees.count()
+    meeting.save(update_fields=['attendee_count'])
+
+
+def _handle_post_delete(request, obj, *, success_message, redirect_name, redirect_kwargs=None, invalid_method_message):
+    if request.method != 'POST':
+        messages.error(request, invalid_method_message)
+        return redirect(redirect_name, **(redirect_kwargs or {}))
+    obj.delete()
+    messages.success(request, success_message)
+    return redirect(redirect_name, **(redirect_kwargs or {}))
+
+
+@login_required
+def home(request):
+    return _render_home(request)
 
 
 @login_required
@@ -140,107 +181,11 @@ def person_edit(request, pk):
     )
 
 
-@login_required
-def meeting_edit(request, pk):
-    meeting = get_object_or_404(Meeting, pk=pk)
-    meeting_form = MeetingForm(instance=meeting)
-    attendees_form = MeetingAttendeesForm(meeting=meeting)
-    attachment_form = MeetingAttachmentForm()
-
-    if request.method == 'POST':
-        form_type = request.POST.get('form_type', '')
-        action = request.POST.get('action', '')
-
-        if form_type == 'meeting':
-            meeting_form = MeetingForm(request.POST, instance=meeting)
-            if meeting_form.is_valid():
-                meeting_form.save()
-                messages.success(request, '会议信息已保存。')
-                return redirect('meeting_edit', pk=meeting.id)
-        elif form_type == 'attachment':
-            attachment_form = MeetingAttachmentForm(request.POST, request.FILES)
-            if attachment_form.is_valid():
-                attachment = attachment_form.save(commit=False)
-                attachment.meeting = meeting
-                attachment.uploaded_by = request.user
-                attachment.save()
-                messages.success(request, '附件已上传。')
-                return redirect('meeting_edit', pk=meeting.id)
-        elif action in ['mark_required', 'mark_optional', 'batch_remove']:
-            attendee_ids_str = request.POST.get('attendee_ids', '')
-            if not attendee_ids_str:
-                messages.error(request, '未选择参与人')
-                return redirect('meeting_edit', pk=meeting.id)
-
-            try:
-                attendee_ids = [int(id) for id in attendee_ids_str.split(',') if id.strip()]
-            except ValueError:
-                messages.error(request, '无效的参与人ID')
-                return redirect('meeting_edit', pk=meeting.id)
-
-            attendees = MeetingAttendee.objects.filter(
-                id__in=attendee_ids,
-                meeting=meeting
-            )
-
-            if not attendees.exists():
-                messages.error(request, '未找到指定的参与人')
-                return redirect('meeting_edit', pk=meeting.id)
-
-            if action == 'mark_required':
-                updated_count = attendees.update(is_required=True)
-                messages.success(request, f'已将 {updated_count} 名参与人设为必须参加')
-            elif action == 'mark_optional':
-                updated_count = attendees.update(is_required=False)
-                messages.success(request, f'已将 {updated_count} 名参与人设为可选')
-            elif action == 'batch_remove':
-                removed_count = attendees.count()
-                attendees.delete()
-                meeting.attendee_count = meeting.attendees.count()
-                meeting.save()
-                messages.success(request, f'已批量移除 {removed_count} 名参与人')
-
-            return redirect('meeting_edit', pk=meeting.id)
-        else:
-            attendees_form = MeetingAttendeesForm(request.POST, meeting=meeting)
-            if attendees_form.is_valid():
-                attendees = attendees_form.cleaned_data['attendees']
-                is_required = attendees_form.cleaned_data['is_required']
-
-                added_count = 0
-                added_people = []
-                for person in attendees:
-                    if not MeetingAttendee.objects.filter(meeting=meeting, person=person).exists():
-                        MeetingAttendee.objects.create(
-                            meeting=meeting,
-                            person=person,
-                            is_required=is_required,
-                            added_by=request.user
-                        )
-                        added_count += 1
-                        added_people.append(person)
-
-                if added_count > 0:
-                    notifications_sent = send_meeting_invitations(meeting, added_people)
-                    meeting.attendee_count = meeting.attendees.count()
-                    meeting.save()
-
-                    if notifications_sent == added_count:
-                        messages.success(request, f'成功添加 {added_count} 名参与人，并已发送会议邀请')
-                    elif notifications_sent > 0:
-                        messages.success(request, f'成功添加 {added_count} 名参与人，其中 {notifications_sent} 人已发送会议邀请（{added_count - notifications_sent} 人无用户账户）')
-                    else:
-                        messages.success(request, f'成功添加 {added_count} 名参与人（无用户账户，未发送应用内通知）')
-                else:
-                    messages.info(request, '没有新增参与人')
-
-                return redirect('meeting_edit', pk=meeting.id)
-
+def _build_meeting_attendees_context(meeting, attendees_form, request):
     all_attendees = meeting.attendees.select_related('person').all()
     paginator = Paginator(all_attendees, 10)
     page_number = request.GET.get('page')
     current_attendees_page = paginator.get_page(page_number)
-    attachments = meeting.attachments.select_related('uploaded_by').all()
     attendee_options = [
         {
             'id': person.id,
@@ -251,6 +196,33 @@ def meeting_edit(request, pk):
         }
         for person in attendees_form.fields['attendees'].queryset.select_related('department')
     ]
+    return {
+        'meeting': meeting,
+        'attendees_form': attendees_form,
+        'attendee_options_json': json.dumps(attendee_options, ensure_ascii=False),
+        'attendee_submit_url': request.path,
+        'current_attendees': current_attendees_page,
+        'paginator': paginator,
+        'page_obj': current_attendees_page,
+    }
+
+
+@login_required
+def meeting_detail(request, pk):
+    return redirect('meeting_info', pk=pk)
+
+
+@login_required
+def meeting_info(request, pk):
+    meeting = get_object_or_404(Meeting, pk=pk)
+    meeting_form = MeetingForm(instance=meeting)
+
+    if request.method == 'POST':
+        meeting_form = MeetingForm(request.POST, instance=meeting)
+        if meeting_form.is_valid():
+            meeting_form.save()
+            messages.success(request, '会议信息已保存。')
+            return redirect('meeting_info', pk=meeting.id)
 
     return render(
         request,
@@ -258,68 +230,285 @@ def meeting_edit(request, pk):
         {
             'meeting': meeting,
             'meeting_form': meeting_form,
-            'attendees_form': attendees_form,
+        },
+    )
+
+
+@login_required
+def meeting_edit(request, pk):
+    return redirect('meeting_detail', pk=pk)
+
+
+@login_required
+def meeting_attachments(request, pk):
+    meeting = get_object_or_404(Meeting, pk=pk)
+    attachment_form = MeetingAttachmentForm()
+
+    if request.method == 'POST':
+        attachment_form = MeetingAttachmentForm(request.POST, request.FILES)
+        if attachment_form.is_valid():
+            attachment = attachment_form.save(commit=False)
+            attachment.meeting = meeting
+            attachment.uploaded_by = request.user
+            attachment.save()
+            messages.success(request, '附件已上传。')
+            return redirect('meeting_attachments', pk=meeting.id)
+
+    attachments = meeting.attachments.select_related('uploaded_by').all()
+    return render(
+        request,
+        'meeting_attachments.html',
+        {
+            'meeting': meeting,
             'attachment_form': attachment_form,
             'attachments': attachments,
-            'attendee_options_json': json.dumps(attendee_options, ensure_ascii=False),
-            'attendee_submit_url': request.path,
-            'current_attendees': current_attendees_page,
-            'paginator': paginator,
-            'page_obj': current_attendees_page,
         },
+    )
+
+
+@login_required
+def meeting_agenda(request, pk):
+    meeting = get_object_or_404(Meeting, pk=pk)
+    agenda_form = MeetingAgendaItemForm(meeting=meeting)
+
+    if request.method == 'POST' and request.POST.get('action') == 'toggle_completion':
+        assignment = get_object_or_404(
+            MeetingAgendaItemAssignee.objects.select_related('agenda_item__meeting'),
+            pk=request.POST.get('assignment_id'),
+            agenda_item__meeting=meeting,
+        )
+        assignment.is_completed = request.POST.get('is_completed') == '1'
+        assignment.save(update_fields=['is_completed'])
+        return redirect('meeting_agenda', pk=meeting.id)
+
+    if request.method == 'POST':
+        agenda_form = MeetingAgendaItemForm(request.POST, meeting=meeting)
+        if agenda_form.is_valid():
+            agenda_item = agenda_form.save(commit=False)
+            agenda_item.meeting = meeting
+            agenda_item.save()
+
+            assignees = agenda_form.cleaned_data['assignees']
+            MeetingAgendaItemAssignee.objects.bulk_create([
+                MeetingAgendaItemAssignee(
+                    agenda_item=agenda_item,
+                    person=person,
+                    is_completed=False,
+                )
+                for person in assignees
+            ])
+            messages.success(request, '会议事项已添加。')
+            return redirect('meeting_agenda', pk=meeting.id)
+
+    agenda_items = list(
+        meeting.agenda_items.prefetch_related('assignees__person').all()
+    )
+
+    return render(
+        request,
+        'meeting_agenda.html',
+        {
+            'meeting': meeting,
+            'agenda_form': agenda_form,
+            'agenda_items': agenda_items,
+        },
+    )
+
+
+@login_required
+def meeting_attendees(request, meeting_id):
+    meeting = get_object_or_404(Meeting, pk=meeting_id)
+    attendees_form = MeetingAttendeesForm(meeting=meeting)
+    action = request.POST.get('action', '')
+
+    if request.method == 'POST' and action in ['mark_required', 'mark_optional', 'batch_remove']:
+        attendee_ids_str = request.POST.get('attendee_ids', '')
+        if not attendee_ids_str:
+            messages.error(request, '未选择参与人')
+            return redirect('meeting_attendees', meeting_id=meeting.id)
+
+        try:
+            attendee_ids = [int(id) for id in attendee_ids_str.split(',') if id.strip()]
+        except ValueError:
+            messages.error(request, '无效的参与人ID')
+            return redirect('meeting_attendees', meeting_id=meeting.id)
+
+        attendees = MeetingAttendee.objects.filter(id__in=attendee_ids, meeting=meeting)
+
+        if not attendees.exists():
+            messages.error(request, '未找到指定的参与人')
+            return redirect('meeting_attendees', meeting_id=meeting.id)
+
+        if action == 'mark_required':
+            updated_count = attendees.update(is_required=True)
+            messages.success(request, f'已将 {updated_count} 名参与人设为必须参加')
+        elif action == 'mark_optional':
+            updated_count = attendees.update(is_required=False)
+            messages.success(request, f'已将 {updated_count} 名参与人设为可选')
+        elif action == 'batch_remove':
+            removed_count = attendees.count()
+            attendees.delete()
+            _recalculate_attendee_count(meeting)
+            messages.success(request, f'已批量移除 {removed_count} 名参与人')
+
+        return redirect('meeting_attendees', meeting_id=meeting.id)
+
+    if request.method == 'POST':
+        attendees_form = MeetingAttendeesForm(request.POST, meeting=meeting)
+        if attendees_form.is_valid():
+            attendees = attendees_form.cleaned_data['attendees']
+            is_required = attendees_form.cleaned_data['is_required']
+
+            added_count = 0
+            added_people = []
+            for person in attendees:
+                if not MeetingAttendee.objects.filter(meeting=meeting, person=person).exists():
+                    MeetingAttendee.objects.create(
+                        meeting=meeting,
+                        person=person,
+                        is_required=is_required,
+                        added_by=request.user
+                    )
+                    added_count += 1
+                    added_people.append(person)
+
+            if added_count > 0:
+                notifications_sent = send_meeting_invitations(meeting, added_people)
+                _recalculate_attendee_count(meeting)
+
+                if notifications_sent == added_count:
+                    messages.success(request, f'成功添加 {added_count} 名参与人，并已发送会议邀请')
+                elif notifications_sent > 0:
+                    messages.success(request, f'成功添加 {added_count} 名参与人，其中 {notifications_sent} 人已发送会议邀请（{added_count - notifications_sent} 人无用户账户）')
+                else:
+                    messages.success(request, f'成功添加 {added_count} 名参与人（无用户账户，未发送应用内通知）')
+            else:
+                messages.info(request, '没有新增参与人')
+
+            return redirect('meeting_attendees', meeting_id=meeting.id)
+
+    return render(
+        request,
+        'meeting_attendees.html',
+        _build_meeting_attendees_context(meeting, attendees_form, request),
     )
 
 
 @login_required
 def person_delete(request, pk):
     person = get_object_or_404(Person, pk=pk)
-    if request.method != 'POST':
-        messages.error(request, '请通过页面上的删除按钮操作。')
-        return redirect('people')
-    name = person.name
-    person.delete()
-    messages.success(request, f'已删除人员：{name}')
-    return redirect('people')
+    return _handle_post_delete(
+        request,
+        person,
+        success_message=f'已删除人员：{person.name}',
+        redirect_name='people',
+        invalid_method_message='请通过页面上的删除按钮操作。',
+    )
 
 
 @login_required
 def meeting_delete(request, pk):
     meeting = get_object_or_404(Meeting, pk=pk)
-    if request.method != 'POST':
-        messages.error(request, '请通过页面上的删除按钮操作。')
-        return redirect('meetings')
-    title = meeting.title
-    meeting.delete()
-    messages.success(request, f'已删除会议：{title}')
-    return redirect('meetings')
+    return _handle_post_delete(
+        request,
+        meeting,
+        success_message=f'已删除会议：{meeting.title}',
+        redirect_name='meetings',
+        invalid_method_message='请通过页面上的删除按钮操作。',
+    )
+
+
+@login_required
+def meeting_agenda_item_delete(request, meeting_id, item_id):
+    meeting = get_object_or_404(Meeting, pk=meeting_id)
+    agenda_item = get_object_or_404(MeetingAgendaItem, pk=item_id, meeting=meeting)
+    return _handle_post_delete(
+        request,
+        agenda_item,
+        success_message=f'已删除事项：{agenda_item.title}',
+        redirect_name='meeting_agenda',
+        redirect_kwargs={'pk': meeting.id},
+        invalid_method_message='请通过页面上的删除按钮操作。',
+    )
+
+
+def api_meeting_agenda_item_detail(request, meeting_id, item_id):
+    meeting = get_object_or_404(Meeting, pk=meeting_id)
+    agenda_item = get_object_or_404(
+        MeetingAgendaItem.objects.prefetch_related('assignees__person'),
+        pk=item_id,
+        meeting=meeting,
+    )
+    return JsonResponse({
+        'id': agenda_item.id,
+        'title': agenda_item.title,
+        'start_time': agenda_item.start_time.strftime('%Y-%m-%dT%H:%M'),
+        'end_time': agenda_item.end_time.strftime('%Y-%m-%dT%H:%M'),
+        'status': agenda_item.status,
+        'assignee_ids': list(agenda_item.assignees.values_list('person_id', flat=True)),
+        'assignee_options': [
+            {
+                'id': attendee.person.id,
+                'name': attendee.person.name,
+                'department': attendee.person.department.name if attendee.person.department else '',
+            }
+            for attendee in meeting.attendees.select_related('person__department').all()
+        ],
+    })
+
+
+def api_meeting_agenda_item_update(request, meeting_id, item_id):
+    meeting = get_object_or_404(Meeting, pk=meeting_id)
+    agenda_item = get_object_or_404(MeetingAgendaItem, pk=item_id, meeting=meeting)
+
+    if request.method not in ['PUT', 'PATCH', 'POST']:
+        return _method_not_allowed_json_response()
+
+    data, error_response = _parse_json_request(request)
+    if error_response:
+        return error_response
+
+    form = MeetingAgendaItemForm(data, instance=agenda_item, meeting=meeting)
+    if not form.is_valid():
+        return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
+
+    agenda_item = form.save()
+    assignees = form.cleaned_data['assignees']
+    assignee_map = {
+        assignment.person_id: assignment
+        for assignment in agenda_item.assignees.all()
+    }
+    selected_ids = {person.id for person in assignees}
+
+    agenda_item.assignees.exclude(person_id__in=selected_ids).delete()
+
+    for person in assignees:
+        if person.id not in assignee_map:
+            MeetingAgendaItemAssignee.objects.create(
+                agenda_item=agenda_item,
+                person=person,
+                is_completed=False,
+            )
+
+    return JsonResponse({'ok': True})
 
 
 @require_POST
 def api_person_create(request):
-    try:
-        data = json.loads(request.body.decode('utf-8'))
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return JsonResponse({'ok': False, 'errors': {'_': ['无效的 JSON']}}, status=400)
-    form = PersonForm(data)
-    if form.is_valid():
-        form.save()
-        return JsonResponse({'ok': True})
-    return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
+    data, error_response = _parse_json_request(request)
+    if error_response:
+        return error_response
+    return _save_form_json_response(PersonForm(data))
 
 
 @require_POST
 def api_meeting_create(request):
-    try:
-        data = json.loads(request.body.decode('utf-8'))
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return JsonResponse({'ok': False, 'errors': {'_': ['无效的 JSON']}}, status=400)
+    data, error_response = _parse_json_request(request)
+    if error_response:
+        return error_response
     if isinstance(data, dict) and data.get('organizer') in ('', None):
         data = {**data, 'organizer': ''}
-    form = MeetingForm(data)
-    if form.is_valid():
-        form.save()
-        return JsonResponse({'ok': True})
-    return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
+    return _save_form_json_response(MeetingForm(data))
 
 
 def api_person_detail(request, pk):
@@ -352,18 +541,13 @@ def api_person_update(request, pk):
     person = get_object_or_404(Person, pk=pk)
 
     if request.method not in ['PUT', 'PATCH', 'POST']:
-        return JsonResponse({'ok': False, 'errors': {'_': ['不支持的请求方法']}}, status=405)
+        return _method_not_allowed_json_response()
 
-    try:
-        data = json.loads(request.body.decode('utf-8'))
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return JsonResponse({'ok': False, 'errors': {'_': ['无效的 JSON']}}, status=400)
+    data, error_response = _parse_json_request(request)
+    if error_response:
+        return error_response
 
-    form = PersonForm(data, instance=person)
-    if form.is_valid():
-        form.save()
-        return JsonResponse({'ok': True})
-    return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
+    return _save_form_json_response(PersonForm(data, instance=person))
 
 
 def api_check_auth(request):
@@ -381,11 +565,6 @@ def api_check_auth(request):
 
 
 @login_required
-def meeting_attendees(request, meeting_id):
-    return redirect('meeting_edit', pk=meeting_id)
-
-
-@login_required
 def remove_attendee(request, meeting_id, attendee_id):
     """移除会议参与人"""
     meeting = get_object_or_404(Meeting, pk=meeting_id)
@@ -394,11 +573,9 @@ def remove_attendee(request, meeting_id, attendee_id):
     if request.method == 'POST':
         person_name = attendee.person.name
         attendee.delete()
-        # 更新会议参会人数
-        meeting.attendee_count = meeting.attendees.count()
-        meeting.save()
+        _recalculate_attendee_count(meeting)
         messages.success(request, f'已从会议中移除 {person_name}')
-        return redirect('meeting_edit', pk=meeting.id)
+        return redirect('meeting_attendees', meeting_id=meeting.id)
 
     return render(request, 'remove_attendee.html', {
         'meeting': meeting,
@@ -410,15 +587,14 @@ def remove_attendee(request, meeting_id, attendee_id):
 def remove_attachment(request, meeting_id, attachment_id):
     meeting = get_object_or_404(Meeting, pk=meeting_id)
     attachment = get_object_or_404(MeetingAttachment, pk=attachment_id, meeting=meeting)
-
-    if request.method != 'POST':
-        messages.error(request, '请通过页面上的删除按钮操作。')
-        return redirect('meeting_edit', pk=meeting.id)
-
-    filename = attachment.filename
-    attachment.delete()
-    messages.success(request, f'已删除附件：{filename}')
-    return redirect('meeting_edit', pk=meeting.id)
+    return _handle_post_delete(
+        request,
+        attachment,
+        success_message=f'已删除附件：{attachment.filename}',
+        redirect_name='meeting_attachments',
+        redirect_kwargs={'pk': meeting.id},
+        invalid_method_message='请通过页面上的删除按钮操作。',
+    )
 
 
 @login_required
@@ -724,18 +900,6 @@ def logout_view(request):
 
 
 @login_required
-def home(request):
-    return render(
-        request,
-        'meeting-system-index.html',
-        {
-            'person_count': Person.objects.count(),
-            'meeting_count': Meeting.objects.count(),
-        },
-    )
-
-
-@login_required
 def profile_view(request):
     """个人中心页面，包含个人信息、账户信息和密码修改"""
     user = request.user
@@ -880,15 +1044,10 @@ def department_delete(request, pk):
 # ====== 部门管理 API ======
 def api_department_create(request):
     """创建新部门"""
-    try:
-        data = json.loads(request.body.decode('utf-8'))
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return JsonResponse({'ok': False, 'errors': {'_': ['无效的 JSON']}}, status=400)
-    form = DepartmentForm(data)
-    if form.is_valid():
-        form.save()
-        return JsonResponse({'ok': True})
-    return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
+    data, error_response = _parse_json_request(request)
+    if error_response:
+        return error_response
+    return _save_form_json_response(DepartmentForm(data))
 
 
 def api_department_detail(request, pk):
@@ -904,15 +1063,10 @@ def api_department_detail(request, pk):
 def api_department_update(request, pk):
     """更新部门信息"""
     department = get_object_or_404(Department, pk=pk)
-    try:
-        data = json.loads(request.body.decode('utf-8'))
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return JsonResponse({'ok': False, 'errors': {'_': ['无效的 JSON']}}, status=400)
-    form = DepartmentForm(data, instance=department)
-    if form.is_valid():
-        form.save()
-        return JsonResponse({'ok': True})
-    return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
+    data, error_response = _parse_json_request(request)
+    if error_response:
+        return error_response
+    return _save_form_json_response(DepartmentForm(data, instance=department))
 
 
 @require_POST

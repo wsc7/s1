@@ -1,32 +1,20 @@
 {% extends "meeting-system-base.html" %}
+{% load static %}
 
-{% block title %}{{ meeting.title }} - 参与人管理{% endblock %}
+{% block title %}会议详情 - {{ meeting.title }} - 参与人信息{% endblock %}
+
+{% block extra_css %}
+<style>
+  .detail-nav { margin: 15px 0 20px; }
+  .meeting-meta { margin-bottom: 20px; }
+  .meeting-meta p { margin-bottom: 6px; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container my-4">
-    <div class="page-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h3 class="mb-0">{{ meeting.title }}</h3>
-                <small class="text-muted">参与人管理</small>
-            </div>
-            <div>
-                <a href="{% url 'meetings' %}" class="btn btn-default">返回会议列表</a>
-            </div>
-        </div>
-    </div>
-
-    {% if messages %}
-    {% for message in messages %}
-    <div class="alert {% if message.level_tag == 'error' %}alert-danger{% elif message.level_tag == 'success' %}alert-success{% else %}alert-info{% endif %} alert-dismissible" role="alert">
-        <button type="button" class="close" data-dismiss="alert" aria-label="关闭"><span aria-hidden="true">&times;</span></button>
-        {{ message }}
-    </div>
-    {% endfor %}
-    {% endif %}
+{% include "meeting_detail_header.html" with active_tab='attendees' meta_label_3='时间' meta_value_3=meeting.start_time|date:"Y-m-d H:i" meta_label_4='人数' meta_value_4=meeting.attendee_count|add:'0'|stringformat:'s'|add:' 人' %}
 
     <div class="row">
-        <!-- 添加参与人表单 -->
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
@@ -38,8 +26,6 @@
 
                         <div class="form-group">
                             <label class="form-section-title">选择参与人</label>
-
-                            <!-- 搜索框 -->
                             <div class="input-group" style="margin-bottom: 15px;">
                                 <input type="text" id="attendee-search" class="form-control" placeholder="搜索姓名或部门...">
                                 <span class="input-group-btn">
@@ -47,7 +33,6 @@
                                 </span>
                             </div>
 
-                            <!-- 批量操作按钮 -->
                             <div style="margin-bottom: 10px;">
                                 <button type="button" class="btn btn-xs btn-default" id="select-all">全选</button>
                                 <button type="button" class="btn btn-xs btn-default" id="deselect-all">全不选</button>
@@ -55,9 +40,8 @@
                                 <button type="button" class="btn btn-xs btn-default" id="deselect-visible">取消可见</button>
                             </div>
 
-                            <!-- 复选框列表容器，设置最大高度和滚动 -->
                             <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 10px;">
-                                {% for person in form.attendees %}
+                                {% for person in attendees_form.attendees %}
                                 <div class="checkbox attendee-item">
                                     <label>
                                         {{ person.tag }}
@@ -67,16 +51,15 @@
                                 {% endfor %}
                             </div>
 
-                            <!-- 选中计数 -->
                             <div class="text-muted small" style="margin-top: 8px;">
-                                已选中: <span id="selected-count">0</span> / <span id="total-count">{{ form.attendees.field.queryset.count }}</span> 人
+                                已选中: <span id="selected-count">0</span> / <span id="total-count">{{ attendees_form.attendees.field.queryset.count }}</span> 人
                             </div>
                         </div>
 
                         <div class="checkbox">
                             <label>
-                                {{ form.is_required }}
-                                {{ form.is_required.label }}
+                                {{ attendees_form.is_required }}
+                                {{ attendees_form.is_required.label }}
                             </label>
                         </div>
 
@@ -86,14 +69,12 @@
             </div>
         </div>
 
-        <!-- 当前参与人列表 -->
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">当前参与人 ({{ current_attendees.count }})</h5>
+                        <h5 class="mb-0">当前参与人 ({{ current_attendees.paginator.count }})</h5>
                         <div class="d-flex align-items-center">
-                            <!-- 批量操作按钮组 -->
                             <div class="btn-group btn-group-xs" role="group" style="margin-right: 10px; display: none;" id="batch-actions">
                                 <button type="button" class="btn btn-default" id="batch-mark-required">设为必须参加</button>
                                 <button type="button" class="btn btn-default" id="batch-mark-optional">设为可选</button>
@@ -223,35 +204,6 @@
             </div>
         </div>
     </div>
-
-    <!-- 会议详情 -->
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">会议详情</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>会议主题：</strong>{{ meeting.title }}</p>
-                            <p><strong>开始时间：</strong>{{ meeting.start_time }}</p>
-                            <p><strong>结束时间：</strong>{{ meeting.end_time }}</p>
-                            <p><strong>地点：</strong>{{ meeting.location|default:"未指定" }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>发起人：</strong>{{ meeting.organizer.name|default:"未指定" }}</p>
-                            <p><strong>状态：</strong><span class="badge badge-{{ meeting.status_badge_class }}">{{ meeting.get_status_display }}</span></p>
-                            <p><strong>参会人数：</strong>{{ meeting.attendee_count }} 人</p>
-                            {% if meeting.description %}
-                            <p><strong>说明：</strong>{{ meeting.description }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 {% endblock %}
@@ -259,7 +211,6 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // 搜索功能
     $('#attendee-search').on('input', function() {
         var searchText = $(this).val().toLowerCase().trim();
 
@@ -274,61 +225,46 @@ $(document).ready(function() {
             }
         });
 
-        // 更新计数
         updateSelectedCount();
     });
 
-    // 清空搜索
     $('#clear-search').click(function() {
         $('#attendee-search').val('').trigger('input');
     });
 
-    // 更新选中计数
     $('.attendee-item input').change(function() {
         updateSelectedCount();
     });
 
-    // 全选
     $('#select-all').click(function() {
         $('.attendee-item input').prop('checked', true);
         updateSelectedCount();
     });
 
-    // 全不选
     $('#deselect-all').click(function() {
         $('.attendee-item input').prop('checked', false);
         updateSelectedCount();
     });
 
-    // 选择可见
     $('#select-visible').click(function() {
         $('.attendee-item:visible input').prop('checked', true);
         updateSelectedCount();
     });
 
-    // 取消可见
     $('#deselect-visible').click(function() {
         $('.attendee-item:visible input').prop('checked', false);
         updateSelectedCount();
     });
 
-    // 更新选中计数函数
     function updateSelectedCount() {
         var selectedCount = $('.attendee-item input:checked').length;
         $('#selected-count').text(selectedCount);
     }
 
-    // ===== 批量操作功能 =====
-
-    // 更新当前参与人复选框状态
     function updateCurrentAttendeeSelection() {
         var selectedCount = $('.attendee-checkbox:checked').length;
         var totalCount = $('.attendee-checkbox').length;
-
-        // 更新全选复选框状态
         $('#select-all-attendees').prop('checked', selectedCount === totalCount && totalCount > 0);
-
-        // 显示/隐藏批量操作按钮
         if (selectedCount > 0) {
             $('#batch-actions').show();
         } else {
@@ -336,18 +272,15 @@ $(document).ready(function() {
         }
     }
 
-    // 当前参与人全选/全不选
     $('#select-all-attendees').change(function() {
         $('.attendee-checkbox').prop('checked', $(this).prop('checked'));
         updateCurrentAttendeeSelection();
     });
 
-    // 单个复选框状态变化
     $(document).on('change', '.attendee-checkbox', function() {
         updateCurrentAttendeeSelection();
     });
 
-    // 批量设为必须参加
     $('#batch-mark-required').click(function() {
         var selectedIds = $('.attendee-checkbox:checked').map(function() {
             return $(this).val();
@@ -365,7 +298,6 @@ $(document).ready(function() {
         }
     });
 
-    // 批量设为可选
     $('#batch-mark-optional').click(function() {
         var selectedIds = $('.attendee-checkbox:checked').map(function() {
             return $(this).val();
@@ -383,7 +315,6 @@ $(document).ready(function() {
         }
     });
 
-    // 批量移除
     $('#batch-remove').click(function() {
         var selectedIds = $('.attendee-checkbox:checked').map(function() {
             return $(this).val();
@@ -401,45 +332,24 @@ $(document).ready(function() {
         }
     });
 
-    // 筛选功能
     $('.filter-option').click(function(e) {
         e.preventDefault();
         var filter = $(this).data('filter');
         var $dropdownButton = $('#filterDropdown');
-
-        // 更新按钮文本
         var filterText = $(this).text();
         $dropdownButton.html(filterText + ' <span class="caret"></span>');
 
-        // 应用筛选
         $('.attendee-row').each(function() {
             var $row = $(this);
             var response = $row.data('response');
             var required = $row.data('required');
-
             var showRow = true;
 
-            switch(filter) {
-                case 'accepted':
-                    showRow = (response === 'accepted');
-                    break;
-                case 'declined':
-                    showRow = (response === 'declined');
-                    break;
-                case 'pending':
-                    showRow = (response === 'pending');
-                    break;
-                case 'required':
-                    showRow = (required === 'true');
-                    break;
-                case 'optional':
-                    showRow = (required === 'false');
-                    break;
-                case 'all':
-                default:
-                    showRow = true;
-                    break;
-            }
+            if (filter === 'accepted' && response !== 'accepted') showRow = false;
+            else if (filter === 'declined' && response !== 'declined') showRow = false;
+            else if (filter === 'pending' && response !== 'pending') showRow = false;
+            else if (filter === 'required' && required !== true) showRow = false;
+            else if (filter === 'optional' && required !== false) showRow = false;
 
             if (showRow) {
                 $row.show();
@@ -448,9 +358,6 @@ $(document).ready(function() {
             }
         });
     });
-
-    // 初始化计数
-    updateSelectedCount();
 });
 </script>
 {% endblock %}

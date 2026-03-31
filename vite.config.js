@@ -19,6 +19,7 @@ module.exports = defineConfig({
         peopleEditModal: path.resolve(__dirname, 'frontend/src/people-edit-modal.js'),
         departmentModal: path.resolve(__dirname, 'frontend/src/department-modal.js'),
         departmentEditModal: path.resolve(__dirname, 'frontend/src/department-edit-modal.js'),
+        agendaItemEditModal: path.resolve(__dirname, 'frontend/src/agenda-item-edit-modal.js'),
       },
       output: {
         format: 'es',
@@ -31,6 +32,7 @@ module.exports = defineConfig({
             peopleEditModal: 'people-edit-modal.js',
             departmentModal: 'department-modal.js',
             departmentEditModal: 'department-edit-modal.js',
+            agendaItemEditModal: 'agenda-item-edit-modal.js',
           }
           return map[chunkInfo.name] || '[name].js'
         },

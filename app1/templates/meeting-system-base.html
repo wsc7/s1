@@ -64,21 +64,22 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="nav navbar-nav navbar-right">
-          <li class="nav-item">
-            <a class="nav-link" href="/">首页</a>
+          <li class="nav-item{% if request.path == '/' %} active{% endif %}">
+            <a class="nav-link" href="/"{% if request.path == '/' %} aria-current="page"{% endif %}>首页</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/meetings">会议管理</a>
+          <li class="nav-item{% if request.path|slice:':10' == '/meetings/' or request.path == '/meetings' %} active{% endif %}">
+            <a class="nav-link" href="/meetings"{% if request.path|slice:':10' == '/meetings/' or request.path == '/meetings' %} aria-current="page"{% endif %}>会议管理</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/people">人员管理</a>
+          <li class="nav-item{% if request.path|slice:':8' == '/people/' or request.path == '/people' %} active{% endif %}">
+            <a class="nav-link" href="/people"{% if request.path|slice:':8' == '/people/' or request.path == '/people' %} aria-current="page"{% endif %}>人员管理</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/departments">部门管理</a>
+          <li class="nav-item{% if request.path|slice:':13' == '/departments/' or request.path == '/departments' %} active{% endif %}">
+            <a class="nav-link" href="/departments"{% if request.path|slice:':13' == '/departments/' or request.path == '/departments' %} aria-current="page"{% endif %}>部门管理</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/notifications">通知中心</a>
+          <li class="nav-item{% if request.path|slice:':14' == '/notifications/' or request.path == '/notifications' %} active{% endif %}">
+            <a class="nav-link" href="/notifications"{% if request.path|slice:':14' == '/notifications/' or request.path == '/notifications' %} aria-current="page"{% endif %}>通知中心</a>
           </li>
+          {% if user.is_authenticated %}
           <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
               {{ user.username }} <span class="caret"></span>
@@ -92,10 +93,20 @@
               </li>
             </ul>
           </li>
+          {% else %}
+          <li class="nav-item">
+            <a class="nav-link" href="/login/">登录</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/register/">注册</a>
+          </li>
+          {% endif %}
         </ul>
+        {% if user.is_authenticated %}
         <form id="logout-form" method="post" action="{% url 'logout' %}" style="display: none;">
           {% csrf_token %}
         </form>
+        {% endif %}
       </div>
     </div>
   </nav>

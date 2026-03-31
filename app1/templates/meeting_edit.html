@@ -1,492 +1,81 @@
+{% extends "meeting-system-base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>编辑会议 - {{ meeting.title }}</title>
-  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-  <link rel="stylesheet" href="{% static 'vue/chunk-style.css' %}">
-  <script type="application/json" id="meeting-attendee-options-json">{{ attendee_options_json|safe }}</script>
-  <style>
-    body { background-color: #f5f6fa; }
-    .page-wrap { max-width: 1200px; margin: 2rem auto; }
-    .card {
-      background: #fff;
-      border: 1px solid #e7e7e7;
-      border-radius: 4px;
-      margin-bottom: 24px;
-    }
-    .card-header {
-      padding: 15px;
-      border-bottom: 1px solid #e7e7e7;
-    }
-    .card-body {
-      padding: 15px;
-    }
-    .inline-form-delete {
-      display: inline-block;
-      margin: 0;
-    }
-    .page-actions {
-      margin-bottom: 20px;
-    }
-    .page-actions .btn {
-      margin-left: 8px;
-    }
-    .layout-column {
-      margin-bottom: 24px;
-    }
-    .attachment-card-body,
-    .attendee-card-body {
-      display: flex;
-      flex-direction: column;
-    }
-    .attachment-scroll-area {
-      max-height: 320px;
-      overflow-y: auto;
-      overflow-x: auto;
-    }
-    .attendee-card-form {
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-    .attendee-scroll-area {
-      max-height: 420px;
-      overflow-y: auto;
-      overflow-x: auto;
-      margin-bottom: 15px;
-    }
-    .attendee-pagination {
-      margin-top: auto;
-    }
-    .attendee-card-actions {
-      margin-top: 15px;
-      text-align: right;
-    }
-    .meeting-info-actions {
-      margin-top: 20px;
-      padding-top: 15px;
-      border-top: 1px solid #e7e7e7;
-      text-align: right;
-    }
-    @media (min-width: 992px) {
-      .meeting-layout {
-        display: flex;
-        align-items: stretch;
-      }
-      .meeting-layout > .layout-column {
-        float: none;
-        display: flex;
-        flex-direction: column;
-      }
-      .meeting-info-card {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-      }
-      .meeting-info-card .card-body {
-        flex: 1;
-      }
-    }
-  </style>
-</head>
-<body>
-  <nav class="navbar navbar-inverse">
-    <div class="container">
-      <a class="navbar-brand" href="{% url 'meetings' %}">← 返回会议管理</a>
-    </div>
-  </nav>
 
-  <div class="container page-wrap">
-    {% if messages %}
-    {% for message in messages %}
-    <div class="alert {% if message.level_tag == 'error' %}alert-danger{% elif message.level_tag == 'success' %}alert-success{% else %}alert-info{% endif %} alert-dismissible" role="alert">
-      <button type="button" class="close" data-dismiss="alert" aria-label="关闭"><span aria-hidden="true">&times;</span></button>
-      {{ message }}
-    </div>
-    {% endfor %}
-    {% endif %}
+{% block title %}会议详情 - {{ meeting.title }} - 会议信息{% endblock %}
 
-    <div class="page-header clearfix">
-      <div class="pull-left">
-        <h3 style="margin-top: 0;">编辑会议</h3>
-        <p class="text-muted" style="margin-bottom: 0;">主题：<strong>{{ meeting.title }}</strong></p>
-      </div>
-      <div class="pull-right page-actions">
-        <a href="{% url 'meetings' %}" class="btn btn-default">返回列表</a>
-      </div>
-    </div>
+{% block extra_css %}
+<style>
+  .detail-nav { margin: 15px 0 20px; }
+  .meeting-meta { margin-bottom: 20px; }
+  .meeting-meta p { margin-bottom: 6px; }
+  .meeting-info-actions {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e7e7e7;
+    text-align: right;
+  }
+</style>
+{% endblock %}
 
-    <div class="row meeting-layout">
-      <div class="col-md-5 layout-column">
-        <div class="card meeting-info-card">
-          <div class="card-header">
-            <h4 class="mb-0">会议信息</h4>
-          </div>
-          <div class="card-body">
-            <form method="post" class="form-horizontal">
-              {% csrf_token %}
-              <input type="hidden" name="form_type" value="meeting">
-              {% if meeting_form.non_field_errors %}
-              <div class="alert alert-danger">{{ meeting_form.non_field_errors }}</div>
-              {% endif %}
-              {% for field in meeting_form %}
-              <div class="form-group{% if field.errors %} has-error{% endif %}">
-                <label class="col-sm-3 control-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                <div class="col-sm-9">
-                  {{ field }}
-                  {% if field.errors %}
-                  <span class="help-block">{{ field.errors|striptags }}</span>
-                  {% endif %}
+{% block content %}
+{% include "meeting_detail_header.html" with active_tab='info' meta_label_3='开始' meta_value_3=meeting.start_time|date:"Y-m-d H:i" meta_label_4='结束' meta_value_4=meeting.end_time|date:"Y-m-d H:i" %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">会议信息</h5>
                 </div>
-              </div>
-              {% endfor %}
-              <div class="form-group">
-                <div class="col-sm-offset-3 col-sm-9">
-                  <button type="submit" class="btn btn-primary">保存会议信息</button>
-                </div>
-              </div>
-            </form>
-            <div class="meeting-info-actions">
-              <form method="post" action="{% url 'meeting_delete' meeting.pk %}" onsubmit="return confirm('确定删除该会议？此操作不可恢复。');">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-danger">删除该会议</button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-7 layout-column">
-        <div class="card">
-          <div class="card-header">
-            <h4 class="mb-0">会议附件</h4>
-          </div>
-          <div class="card-body attachment-card-body">
-            <form method="post" enctype="multipart/form-data" class="form-inline" style="margin-bottom: 20px;">
-              {% csrf_token %}
-              <input type="hidden" name="form_type" value="attachment">
-              <div class="form-group{% if attachment_form.file.errors %} has-error{% endif %}" style="margin-right: 10px;">
-                {{ attachment_form.file }}
-                {% if attachment_form.file.errors %}
-                <span class="help-block">{{ attachment_form.file.errors|striptags }}</span>
-                {% endif %}
-              </div>
-              <button type="submit" class="btn btn-primary">上传附件</button>
-            </form>
-
-            <div class="attachment-scroll-area">
-              {% if attachments %}
-              <div class="table-responsive">
-                <table class="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>文件名</th>
-                      <th>上传人</th>
-                      <th>上传时间</th>
-                      <th class="text-right">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for attachment in attachments %}
-                    <tr>
-                      <td>{{ attachment.filename }}</td>
-                      <td>{{ attachment.uploaded_by.username|default:'-' }}</td>
-                      <td>{{ attachment.created_at|date:"Y-m-d H:i" }}</td>
-                      <td class="text-right">
-                        <a href="{{ attachment.file.url }}" class="btn btn-xs btn-default" target="_blank" rel="noopener">下载</a>
-                        <form method="post" action="{% url 'remove_attachment' meeting.id attachment.id %}" class="inline-form-delete" onsubmit="return confirm('确定要删除该附件吗？');">
-                          {% csrf_token %}
-                          <button type="submit" class="btn btn-xs btn-danger">删除</button>
+                <div class="card-body">
+                    <form method="post" class="form-horizontal">
+                        {% csrf_token %}
+                        {% if meeting_form.non_field_errors %}
+                        <div class="alert alert-danger">{{ meeting_form.non_field_errors }}</div>
+                        {% endif %}
+                        {% for field in meeting_form %}
+                        <div class="form-group{% if field.errors %} has-error{% endif %}">
+                            <label class="col-sm-3 control-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            <div class="col-sm-9">
+                                {{ field }}
+                                {% if field.errors %}
+                                <span class="help-block">{{ field.errors|striptags }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <div class="form-group">
+                            <div class="col-sm-offset-3 col-sm-9">
+                                <button type="submit" class="btn btn-primary">保存会议信息</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="meeting-info-actions">
+                        <form method="post" action="{% url 'meeting_delete' meeting.pk %}" onsubmit="return confirm('确定删除该会议？此操作不可恢复。');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">删除该会议</button>
                         </form>
-                      </td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-              {% else %}
-              <p class="text-muted" style="margin-bottom: 0;">暂无附件</p>
-              {% endif %}
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
 
-        <div class="card">
-          <div class="card-header">
-            <div class="clearfix">
-              <h4 class="pull-left" style="margin: 0;">当前参与人 ({{ current_attendees.paginator.count }})</h4>
-              <div class="pull-right">
-                <div class="btn-group btn-group-xs" role="group" style="margin-right: 10px; display: none;" id="batch-actions">
-                  <button type="button" class="btn btn-default" id="batch-mark-required">设为必须参加</button>
-                  <button type="button" class="btn btn-default" id="batch-mark-optional">设为可选</button>
-                  <button type="button" class="btn btn-danger" id="batch-remove">批量移除</button>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">摘要</h5>
                 </div>
-                <div class="dropdown" style="display: inline-block;">
-                  <button class="btn btn-xs btn-default dropdown-toggle" type="button" id="filterDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                    筛选 <span class="caret"></span>
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="filterDropdown">
-                    <li><a href="#" class="filter-option" data-filter="all">全部</a></li>
-                    <li><a href="#" class="filter-option" data-filter="accepted">已接受</a></li>
-                    <li><a href="#" class="filter-option" data-filter="declined">已拒绝</a></li>
-                    <li><a href="#" class="filter-option" data-filter="pending">待回复</a></li>
-                    <li role="separator" class="divider"></li>
-                    <li><a href="#" class="filter-option" data-filter="required">必须参加</a></li>
-                    <li><a href="#" class="filter-option" data-filter="optional">可选</a></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="card-body attendee-card-body">
-            {% if current_attendees %}
-            <form method="post" action="" id="attendees-batch-form" class="attendee-card-form">
-              {% csrf_token %}
-              <input type="hidden" name="form_type" value="attendees">
-              <input type="hidden" name="action" id="batch-action" value="">
-              <input type="hidden" name="attendee_ids" id="batch-attendee-ids" value="">
-
-              <div class="table-responsive attendee-scroll-area">
-                <table class="table table-hover">
-                  <thead>
-                    <tr>
-                      <th width="40">
-                        <input type="checkbox" id="select-all-attendees">
-                      </th>
-                      <th>姓名</th>
-                      <th>部门</th>
-                      <th>状态</th>
-                      <th>类型</th>
-                      <th>操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for attendee in current_attendees %}
-                    <tr class="attendee-row" data-response="{{ attendee.response }}" data-required="{{ attendee.is_required|yesno:'true,false' }}" data-id="{{ attendee.id }}">
-                      <td>
-                        <input type="checkbox" class="attendee-checkbox" value="{{ attendee.id }}">
-                      </td>
-                      <td>
-                        <strong>{{ attendee.person.name }}</strong>
-                        {% if attendee.person.employee_no %}
-                        <br><small class="text-muted">{{ attendee.person.employee_no }}</small>
-                        {% endif %}
-                      </td>
-                      <td>{{ attendee.person.department|default:"-" }}</td>
-                      <td>
-                        <span class="badge badge-{% if attendee.response == 'accepted' %}success{% elif attendee.response == 'declined' %}danger{% else %}warning{% endif %}">
-                          {{ attendee.get_response_display }}
-                        </span>
-                      </td>
-                      <td>
-                        {% if attendee.is_required %}
-                        <span class="badge badge-primary">必须参加</span>
-                        {% else %}
-                        <span class="badge badge-default">可选</span>
-                        {% endif %}
-                      </td>
-                      <td>
-                        <form method="post" action="{% url 'remove_attendee' meeting.id attendee.id %}" class="inline-form-delete" onsubmit="return confirm('确定要移除此参与人吗？');">
-                          {% csrf_token %}
-                          <button type="submit" class="btn btn-sm btn-danger">移除</button>
-                        </form>
-                      </td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-
-              {% if page_obj.paginator.num_pages > 1 %}
-              <nav aria-label="参与人分页" class="text-center attendee-pagination">
-                <ul class="pagination pagination-sm">
-                  {% if page_obj.has_previous %}
-                  <li>
-                    <a href="?page={{ page_obj.previous_page_number }}" aria-label="上一页">
-                      <span aria-hidden="true">&laquo;</span>
-                    </a>
-                  </li>
-                  {% else %}
-                  <li class="disabled">
-                    <span aria-hidden="true">&laquo;</span>
-                  </li>
-                  {% endif %}
-
-                  {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                    <li class="active"><span>{{ num }}</span></li>
-                    {% else %}
-                    <li><a href="?page={{ num }}">{{ num }}</a></li>
+                <div class="card-body">
+                    <p><strong>地点：</strong>{{ meeting.location|default:"未指定" }}</p>
+                    <p><strong>参会人数：</strong>{{ meeting.attendee_count }} 人</p>
+                    <p><strong>附件数量：</strong>{{ meeting.attachments.count }} 个</p>
+                    {% if meeting.description %}
+                    <hr>
+                    <p><strong>说明：</strong></p>
+                    <p class="text-muted">{{ meeting.description }}</p>
                     {% endif %}
-                  {% endfor %}
-
-                  {% if page_obj.has_next %}
-                  <li>
-                    <a href="?page={{ page_obj.next_page_number }}" aria-label="下一页">
-                      <span aria-hidden="true">&raquo;</span>
-                    </a>
-                  </li>
-                  {% else %}
-                  <li class="disabled">
-                    <span aria-hidden="true">&raquo;</span>
-                  </li>
-                  {% endif %}
-                </ul>
-                <div class="text-muted small">
-                  显示第 {{ page_obj.start_index }} - {{ page_obj.end_index }} 条，共 {{ page_obj.paginator.count }} 条记录
                 </div>
-              </nav>
-              {% endif %}
-              <div class="attendee-card-actions">
-                <div id="vue-meeting-attendees-modal"
-                     data-submit-url="{{ attendee_submit_url }}"
-                     data-csrf-token="{% csrf_token %}"></div>
-              </div>
-            </form>
-            {% else %}
-            <div class="attendee-scroll-area">
-              <p class="text-muted text-center" style="margin-bottom: 0;">暂无参与人</p>
             </div>
-            <div class="attendee-card-actions">
-              <div id="vue-meeting-attendees-modal"
-                   data-submit-url="{{ attendee_submit_url }}"
-                   data-csrf-token="{% csrf_token %}"></div>
-            </div>
-            {% endif %}
-          </div>
         </div>
-      </div>
     </div>
-  </div>
-
-  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-  <script type="module" src="{% static 'vue/meeting-attendees-modal.js' %}"></script>
-  <script>
-  $(document).ready(function() {
-      function updateCurrentAttendeeSelection() {
-          var selectedCount = $('.attendee-checkbox:checked').length;
-          var totalCount = $('.attendee-checkbox').length;
-
-          $('#select-all-attendees').prop('checked', selectedCount === totalCount && totalCount > 0);
-
-          if (selectedCount > 0) {
-              $('#batch-actions').show();
-          } else {
-              $('#batch-actions').hide();
-          }
-      }
-
-      $('#select-all-attendees').change(function() {
-          $('.attendee-checkbox').prop('checked', $(this).prop('checked'));
-          updateCurrentAttendeeSelection();
-      });
-
-      $(document).on('change', '.attendee-checkbox', function() {
-          updateCurrentAttendeeSelection();
-      });
-
-      $('#batch-mark-required').click(function() {
-          var selectedIds = $('.attendee-checkbox:checked').map(function() {
-              return $(this).val();
-          }).get();
-
-          if (selectedIds.length === 0) {
-              alert('请先选择参与人');
-              return;
-          }
-
-          if (confirm('确定要将选中的 ' + selectedIds.length + ' 名参与人设为必须参加吗？')) {
-              $('#batch-action').val('mark_required');
-              $('#batch-attendee-ids').val(selectedIds.join(','));
-              $('#attendees-batch-form').submit();
-          }
-      });
-
-      $('#batch-mark-optional').click(function() {
-          var selectedIds = $('.attendee-checkbox:checked').map(function() {
-              return $(this).val();
-          }).get();
-
-          if (selectedIds.length === 0) {
-              alert('请先选择参与人');
-              return;
-          }
-
-          if (confirm('确定要将选中的 ' + selectedIds.length + ' 名参与人设为可选吗？')) {
-              $('#batch-action').val('mark_optional');
-              $('#batch-attendee-ids').val(selectedIds.join(','));
-              $('#attendees-batch-form').submit();
-          }
-      });
-
-      $('#batch-remove').click(function() {
-          var selectedIds = $('.attendee-checkbox:checked').map(function() {
-              return $(this).val();
-          }).get();
-
-          if (selectedIds.length === 0) {
-              alert('请先选择参与人');
-              return;
-          }
-
-          if (confirm('确定要移除选中的 ' + selectedIds.length + ' 名参与人吗？')) {
-              $('#batch-action').val('batch_remove');
-              $('#batch-attendee-ids').val(selectedIds.join(','));
-              $('#attendees-batch-form').submit();
-          }
-      });
-
-      $('.filter-option').click(function(e) {
-          e.preventDefault();
-          var filter = $(this).data('filter');
-          var $dropdownButton = $('#filterDropdown');
-
-          var filterText = $(this).text();
-          $dropdownButton.html(filterText + ' <span class="caret"></span>');
-
-          $('.attendee-row').each(function() {
-              var $row = $(this);
-              var response = $row.data('response');
-              var required = $row.data('required');
-
-              var showRow = true;
-
-              switch(filter) {
-                  case 'accepted':
-                      showRow = (response === 'accepted');
-                      break;
-                  case 'declined':
-                      showRow = (response === 'declined');
-                      break;
-                  case 'pending':
-                      showRow = (response === 'pending');
-                      break;
-                  case 'required':
-                      showRow = (required === 'true');
-                      break;
-                  case 'optional':
-                      showRow = (required === 'false');
-                      break;
-                  case 'all':
-                  default:
-                      showRow = true;
-                      break;
-              }
-
-              if (showRow) {
-                  $row.show();
-              } else {
-                  $row.hide();
-              }
-          });
-      });
-
-      updateCurrentAttendeeSelection();
-  });
-  </script>
-</body>
-</html>
+</div>
+{% endblock %}

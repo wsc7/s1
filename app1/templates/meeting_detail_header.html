@@ -1,0 +1,29 @@
+<div class="container my-4">
+    {% include "page_header.html" with page_title='会议详情' page_subtitle=meeting.title back_url=meeting_list_url|default:'/meetings/' back_text='返回会议列表' %}
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.level_tag == 'error' %}alert-danger{% elif message.level_tag == 'success' %}alert-success{% else %}alert-info{% endif %} alert-dismissible" role="alert">
+        <button type="button" class="close" data-dismiss="alert" aria-label="关闭"><span aria-hidden="true">&times;</span></button>
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <ul class="nav nav-tabs detail-nav">
+        <li{% if active_tab == 'info' %} class="active"{% endif %}><a href="{% url 'meeting_info' meeting.pk %}">会议信息</a></li>
+        <li{% if active_tab == 'attendees' %} class="active"{% endif %}><a href="{% url 'meeting_attendees' meeting.pk %}">参与人信息</a></li>
+        <li{% if active_tab == 'attachments' %} class="active"{% endif %}><a href="{% url 'meeting_attachments' meeting.pk %}">附件信息</a></li>
+        <li{% if active_tab == 'agenda' %} class="active"{% endif %}><a href="{% url 'meeting_agenda' meeting.pk %}">会议事项</a></li>
+    </ul>
+
+    <div class="card meeting-meta">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3"><p><strong>发起人：</strong>{{ meeting.organizer.name|default:"未指定" }}</p></div>
+                <div class="col-md-3"><p><strong>状态：</strong>{{ meeting.get_status_display }}</p></div>
+                <div class="col-md-3"><p><strong>{{ meta_label_3|default:"时间" }}：</strong>{{ meta_value_3 }}</p></div>
+                <div class="col-md-3"><p><strong>{{ meta_label_4 }}：</strong>{{ meta_value_4 }}</p></div>
+            </div>
+        </div>
+    </div>

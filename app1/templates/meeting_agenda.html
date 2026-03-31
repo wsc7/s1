@@ -1,0 +1,204 @@
+{% extends "meeting-system-base.html" %}
+{% load static %}
+
+{% block title %}会议详情 - {{ meeting.title }} - 会议事项{% endblock %}
+
+{% block extra_css %}
+<style>
+  .agenda-empty { margin-bottom: 0; }
+  .agenda-card + .agenda-card { margin-top: 12px; }
+  .agenda-card .card-body { padding: 14px 16px; }
+  .agenda-summary {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .agenda-title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .agenda-title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .agenda-meta {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .agenda-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .agenda-assignees-label {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .agenda-assignees {
+    border-top: 1px solid #f0f0f0;
+    padding-top: 8px;
+  }
+  .agenda-assignee-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .agenda-assignee-item:last-child { border-bottom: none; }
+  .agenda-assignee-name {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .agenda-toggle-form { margin: 0; }
+  .agenda-toggle-form label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: normal;
+    margin: 0;
+    cursor: pointer;
+  }
+  .agenda-toggle-form input[type="checkbox"] { margin: 0; }
+  .agenda-assignee-status.text-success { font-weight: 600; }
+  .checkbox-group {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px 12px;
+  }
+  .checkbox-group .checkbox { margin-top: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "meeting_detail_header.html" with active_tab='agenda' meta_label_3='时间' meta_value_3=meeting.start_time|date:"Y-m-d H:i" meta_label_4='状态' meta_value_4=meeting.get_status_display %}
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header clearfix">
+                    <h5 class="mb-0 pull-left" style="margin-top: 8px;">事项列表</h5>
+                    <button type="button" class="btn btn-primary pull-right" data-toggle="modal" data-target="#agendaModal">添加事项</button>
+                </div>
+                <div class="card-body">
+                    {% if agenda_items %}
+                        {% for item in agenda_items %}
+                        <div class="card agenda-card">
+                            <div class="card-body">
+                                <div class="agenda-summary">
+                                    <div>
+                                        <div class="agenda-title-row">
+                                            <span class="agenda-title">{{ item.title }}</span>
+                                            <span class="badge badge-default">{{ item.get_status_display }}</span>
+                                        </div>
+                                        <div class="agenda-meta">
+                                            <span>开始：{{ item.start_time|date:"Y-m-d H:i" }}</span>
+                                            <span style="margin-left: 12px;">结束：{{ item.end_time|date:"Y-m-d H:i" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="agenda-actions">
+                                        <span data-vue-agenda-edit-modal
+                                              data-meeting-id="{{ meeting.id }}"
+                                              data-item-id="{{ item.id }}"
+                                              data-api-url="/api/meetings/{{ meeting.id }}/agenda-items/"></span>
+                                        <form method="post" action="{% url 'meeting_agenda_item_delete' meeting.id item.id %}" class="inline-form-delete" onsubmit="return confirm('确定删除该事项？');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-xs btn-danger">删除</button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <div class="agenda-assignees">
+                                    <div class="agenda-assignees-label">事项人员</div>
+                                    {% if item.assignees.all %}
+                                        {% for assignment in item.assignees.all %}
+                                        <div class="agenda-assignee-item">
+                                            <span class="agenda-assignee-name">{{ assignment.person.name }}</span>
+                                            <form method="post" class="agenda-toggle-form">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="toggle_completion">
+                                                <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                                                <input type="hidden" name="is_completed" value="{% if assignment.is_completed %}0{% else %}1{% endif %}">
+                                                <label>
+                                                    <input type="checkbox" {% if assignment.is_completed %}checked{% endif %} onchange="this.form.submit()">
+                                                    <span class="agenda-assignee-status {% if assignment.is_completed %}text-success{% else %}text-muted{% endif %}">{% if assignment.is_completed %}已完成{% else %}未完成{% endif %}</span>
+                                                </label>
+                                            </form>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                    <p class="text-muted agenda-empty">暂无事项人员</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <p class="text-muted text-center">暂无会议事项</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="agendaModal" tabindex="-1" role="dialog" aria-labelledby="agendaModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <form method="post">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="关闭"><span aria-hidden="true">&times;</span></button>
+                        <h4 class="modal-title" id="agendaModalLabel">添加事项</h4>
+                    </div>
+                    <div class="modal-body">
+                        {% csrf_token %}
+                        {% if agenda_form.non_field_errors %}
+                        <div class="alert alert-danger">{{ agenda_form.non_field_errors }}</div>
+                        {% endif %}
+                        {% for field in agenda_form %}
+                        <div class="form-group{% if field.errors %} has-error{% endif %}">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {% if field.name == 'assignees' %}
+                            <div class="checkbox-group">
+                                {{ field }}
+                            </div>
+                            {% else %}
+                            {{ field }}
+                            {% endif %}
+                            {% if field.errors %}
+                            <span class="help-block">{{ field.errors|striptags }}</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">保存事项</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'vue/agenda-item-edit-modal.js' %}"></script>
+{% if agenda_form.errors %}
+<script>
+$(function() {
+    $('#agendaModal').modal('show');
+});
+</script>
+{% endif %}
+{% endblock %}

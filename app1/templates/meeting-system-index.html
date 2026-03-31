@@ -1,0 +1,143 @@
+{% extends "meeting-system-base.html" %}
+
+{% load static %}
+
+{% block title %}首页 - 会议与人员管理系统{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+      padding: 4rem 1rem;
+      background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+      color: #fff;
+      text-align: center;
+    }
+    .hero-section h1 {
+      font-size: 2.2rem;
+      margin-bottom: 1rem;
+    }
+    .hero-section p {
+      max-width: 680px;
+      margin: 0.5rem auto 1.5rem;
+      font-size: 1.05rem;
+    }
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(13, 110, 253, 0.08);
+      color: #0d6efd;
+      margin-bottom: 0.75rem;
+      font-size: 1.4rem;
+    }
+    .feature-card {
+      border: none;
+      border-radius: 0.75rem;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+      height: 100%;
+    }
+    .feature-card .card-body {
+      padding: 1.5rem 1.5rem 1.25rem;
+    }
+    .footer {
+      padding: 1.5rem 0;
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+    .hero-buttons .btn {
+      margin-right: 10px;
+    }
+    .hero-buttons .btn:last-child {
+      margin-right: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+  <!-- 顶部介绍区 -->
+  <section class="hero-section">
+    <div class="container">
+      <h1>面向单位的会议与人员管理平台</h1>
+      <p>
+        通过统一的会议管理与人员管理模块，实现会议全生命周期闭环管理与组织人员基础数据的集中维护，
+        为日常办公和决策提供高效、规范的信息化支撑。
+      </p>
+      <p class="small" style="opacity: 0.9;">
+        当前库中：人员 {{ person_count }} 人，会议 {{ meeting_count }} 条
+      </p>
+      <div class="hero-buttons">
+        <a href="/meetings" class="btn btn-primary btn-lg">进入会议管理</a>
+        <a href="/people" class="btn btn-primary btn-lg">进入人员管理</a>
+        <a href="/notifications" class="btn btn-primary btn-lg">通知中心</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 功能卡片区 -->
+  <main class="container my-5">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card feature-card">
+          <div class="card-body">
+            <div class="card-icon">
+              <span class="fw-bold">会</span>
+            </div>
+            <h5 class="card-title">会议生命周期管理</h5>
+            <p class="card-text text-muted">
+              覆盖会前申请与审批、会中签到与过程记录、会后纪要与归档的全流程管理，提升会议组织效率与可追溯性。
+            </p>
+            <a href="/meetings" class="btn btn-sm btn-primary">查看会议模块</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card feature-card">
+          <div class="card-body">
+            <div class="card-icon">
+              <span class="fw-bold">人</span>
+            </div>
+            <h5 class="card-title">人员与角色管理</h5>
+            <p class="card-text text-muted">
+              集中维护人员信息、部门结构与角色权限，实现用户—角色—权限的统一管理与访问控制。
+            </p>
+            <a href="/people" class="btn btn-sm btn-primary">查看人员模块</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card feature-card">
+          <div class="card-body">
+            <div class="card-icon">
+              <span class="fw-bold">通</span>
+            </div>
+            <h5 class="card-title">通知与提醒</h5>
+            <p class="card-text text-muted">
+              智能的会议通知、邀请回复和定时提醒功能，确保重要会议信息及时传达，提高会议参与率。
+            </p>
+            <a href="/notifications" class="btn btn-sm btn-primary">通知中心</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vue 挂载点：与 frontend/src/main.js、App.vue 对应 -->
+    <div class="row mt-4">
+      <div class="col-md-12">
+        <div id="vue-meeting-root"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="footer text-center">
+    <div class="container">
+      <p class="mb-0">&copy; 2024 会议与人员管理系统. 保留所有权利.</p>
+    </div>
+  </footer>
+{% endblock %}
+

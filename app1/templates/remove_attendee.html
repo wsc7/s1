@@ -1,0 +1,47 @@
+{% extends "meeting-system-base.html" %}
+
+{% block title %}移除参与人 - 会议管理系统{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-md-6 col-md-offset-3">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">确认移除参与人</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h5>您确定要从会议中移除以下参与人吗？</h5>
+                    </div>
+
+                    <div class="well">
+                        <h5>会议信息</h5>
+                        <p><strong>会议主题：</strong>{{ meeting.title }}</p>
+                        <p><strong>时间：</strong>{{ meeting.start_time }} - {{ meeting.end_time }}</p>
+                        <p><strong>地点：</strong>{{ meeting.location|default:"未指定" }}</p>
+                    </div>
+
+                    <div class="well">
+                        <h5>参与人信息</h5>
+                        <p><strong>姓名：</strong>{{ attendee.person.name }}</p>
+                        <p><strong>部门：</strong>{{ attendee.person.department|default:"-" }}</p>
+                        <p><strong>当前状态：</strong>{{ attendee.get_response_display }}</p>
+                        {% if attendee.is_required %}
+                        <p><span class="badge badge-primary">必须参加</span></p>
+                        {% endif %}
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-danger">确认移除</button>
+                            <a href="{% url 'meeting_edit' meeting.id %}" class="btn btn-default">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

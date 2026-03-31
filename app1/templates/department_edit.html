@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>编辑部门 - {{ department.name }}</title>
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+  <style>
+    body { background-color: #f5f6fa; }
+    .page-wrap { max-width: 720px; margin: 2rem auto; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-inverse">
+    <div class="container">
+      <a class="navbar-brand" href="{% url 'departments' %}">← 返回部门管理</a>
+    </div>
+  </nav>
+
+  <div class="container page-wrap">
+    <h3 class="page-header">编辑部门</h3>
+    <p class="text-muted">正在编辑：<strong>{{ department.name }}</strong></p>
+
+    <form method="post" class="form-horizontal">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% for field in form %}
+      <div class="form-group{% if field.errors %} has-error{% endif %}">
+        <label class="col-sm-3 control-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        <div class="col-sm-9">
+          {{ field }}
+          {% if field.errors %}
+          <span class="help-block">{{ field.errors|striptags }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      <div class="form-group">
+        <div class="col-sm-offset-3 col-sm-9">
+          <button type="submit" class="btn btn-primary">保存</button>
+          <a href="{% url 'departments' %}" class="btn btn-default">取消</a>
+        </div>
+      </div>
+    </form>
+
+    <form method="post" action="{% url 'department_delete' department.pk %}" class="form-horizontal" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e7e7e7;" onsubmit="return confirm('确定删除该部门？如果该部门下有人员，将无法删除。');">
+      {% csrf_token %}
+      <div class="form-group">
+        <div class="col-sm-offset-3 col-sm-9">
+          <button type="submit" class="btn btn-danger">删除该部门</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</body>
+</html>

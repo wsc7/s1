@@ -1,0 +1,456 @@
+{% extends "meeting-system-base.html" %}
+
+{% block title %}{{ meeting.title }} - 参与人管理{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-0">{{ meeting.title }}</h3>
+                <small class="text-muted">参与人管理</small>
+            </div>
+            <div>
+                <a href="{% url 'meetings' %}" class="btn btn-default">返回会议列表</a>
+            </div>
+        </div>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.level_tag == 'error' %}alert-danger{% elif message.level_tag == 'success' %}alert-success{% else %}alert-info{% endif %} alert-dismissible" role="alert">
+        <button type="button" class="close" data-dismiss="alert" aria-label="关闭"><span aria-hidden="true">&times;</span></button>
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <!-- 添加参与人表单 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">添加参与人</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="form-group">
+                            <label class="form-section-title">选择参与人</label>
+
+                            <!-- 搜索框 -->
+                            <div class="input-group" style="margin-bottom: 15px;">
+                                <input type="text" id="attendee-search" class="form-control" placeholder="搜索姓名或部门...">
+                                <span class="input-group-btn">
+                                    <button class="btn btn-default" type="button" id="clear-search">清空</button>
+                                </span>
+                            </div>
+
+                            <!-- 批量操作按钮 -->
+                            <div style="margin-bottom: 10px;">
+                                <button type="button" class="btn btn-xs btn-default" id="select-all">全选</button>
+                                <button type="button" class="btn btn-xs btn-default" id="deselect-all">全不选</button>
+                                <button type="button" class="btn btn-xs btn-default" id="select-visible">选择可见</button>
+                                <button type="button" class="btn btn-xs btn-default" id="deselect-visible">取消可见</button>
+                            </div>
+
+                            <!-- 复选框列表容器，设置最大高度和滚动 -->
+                            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 10px;">
+                                {% for person in form.attendees %}
+                                <div class="checkbox attendee-item">
+                                    <label>
+                                        {{ person.tag }}
+                                        <span class="attendee-name">{{ person.choice_label }}</span>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <!-- 选中计数 -->
+                            <div class="text-muted small" style="margin-top: 8px;">
+                                已选中: <span id="selected-count">0</span> / <span id="total-count">{{ form.attendees.field.queryset.count }}</span> 人
+                            </div>
+                        </div>
+
+                        <div class="checkbox">
+                            <label>
+                                {{ form.is_required }}
+                                {{ form.is_required.label }}
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">添加参与人</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 当前参与人列表 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">当前参与人 ({{ current_attendees.count }})</h5>
+                        <div class="d-flex align-items-center">
+                            <!-- 批量操作按钮组 -->
+                            <div class="btn-group btn-group-xs" role="group" style="margin-right: 10px; display: none;" id="batch-actions">
+                                <button type="button" class="btn btn-default" id="batch-mark-required">设为必须参加</button>
+                                <button type="button" class="btn btn-default" id="batch-mark-optional">设为可选</button>
+                                <button type="button" class="btn btn-danger" id="batch-remove">批量移除</button>
+                            </div>
+                            <div class="dropdown" style="display: inline-block;">
+                                <button class="btn btn-xs btn-default dropdown-toggle" type="button" id="filterDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                    筛选 <span class="caret"></span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="filterDropdown">
+                                    <li><a href="#" class="filter-option" data-filter="all">全部</a></li>
+                                    <li><a href="#" class="filter-option" data-filter="accepted">已接受</a></li>
+                                    <li><a href="#" class="filter-option" data-filter="declined">已拒绝</a></li>
+                                    <li><a href="#" class="filter-option" data-filter="pending">待回复</a></li>
+                                    <li role="separator" class="divider"></li>
+                                    <li><a href="#" class="filter-option" data-filter="required">必须参加</a></li>
+                                    <li><a href="#" class="filter-option" data-filter="optional">可选</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if current_attendees %}
+                    <form method="post" action="" id="attendees-batch-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" id="batch-action" value="">
+                        <input type="hidden" name="attendee_ids" id="batch-attendee-ids" value="">
+
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th width="40">
+                                            <input type="checkbox" id="select-all-attendees">
+                                        </th>
+                                        <th>姓名</th>
+                                        <th>部门</th>
+                                        <th>状态</th>
+                                        <th>类型</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for attendee in current_attendees %}
+                                    <tr class="attendee-row" data-response="{{ attendee.response }}" data-required="{{ attendee.is_required|yesno:'true,false' }}" data-id="{{ attendee.id }}">
+                                        <td>
+                                            <input type="checkbox" class="attendee-checkbox" value="{{ attendee.id }}">
+                                        </td>
+                                        <td>
+                                            <strong>{{ attendee.person.name }}</strong>
+                                            {% if attendee.person.employee_no %}
+                                            <br><small class="text-muted">{{ attendee.person.employee_no }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ attendee.person.department|default:"-" }}</td>
+                                        <td>
+                                            <span class="badge badge-{% if attendee.response == 'accepted' %}success{% elif attendee.response == 'declined' %}danger{% else %}warning{% endif %}">
+                                                {{ attendee.get_response_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if attendee.is_required %}
+                                            <span class="badge badge-primary">必须参加</span>
+                                            {% else %}
+                                            <span class="badge badge-default">可选</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <form method="post" action="{% url 'remove_attendee' meeting.id attendee.id %}" class="inline-form-delete" onsubmit="return confirm('确定要移除此参与人吗？');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-danger">移除</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {% if page_obj.paginator.num_pages > 1 %}
+                        <nav aria-label="参与人分页" class="text-center">
+                            <ul class="pagination pagination-sm">
+                                {% if page_obj.has_previous %}
+                                <li>
+                                    <a href="?page={{ page_obj.previous_page_number }}" aria-label="上一页">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="disabled">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                    <li class="active"><span>{{ num }}</span></li>
+                                    {% else %}
+                                    <li><a href="?page={{ num }}">{{ num }}</a></li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                <li>
+                                    <a href="?page={{ page_obj.next_page_number }}" aria-label="下一页">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="disabled">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </li>
+                                {% endif %}
+                            </ul>
+                            <div class="text-muted small">
+                                显示第 {{ page_obj.start_index }} - {{ page_obj.end_index }} 条，共 {{ page_obj.paginator.count }} 条记录
+                            </div>
+                        </nav>
+                        {% endif %}
+
+                    </form>
+                    {% else %}
+                    <p class="text-muted text-center">暂无参与人</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 会议详情 -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">会议详情</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>会议主题：</strong>{{ meeting.title }}</p>
+                            <p><strong>开始时间：</strong>{{ meeting.start_time }}</p>
+                            <p><strong>结束时间：</strong>{{ meeting.end_time }}</p>
+                            <p><strong>地点：</strong>{{ meeting.location|default:"未指定" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>发起人：</strong>{{ meeting.organizer.name|default:"未指定" }}</p>
+                            <p><strong>状态：</strong><span class="badge badge-{{ meeting.status_badge_class }}">{{ meeting.get_status_display }}</span></p>
+                            <p><strong>参会人数：</strong>{{ meeting.attendee_count }} 人</p>
+                            {% if meeting.description %}
+                            <p><strong>说明：</strong>{{ meeting.description }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 搜索功能
+    $('#attendee-search').on('input', function() {
+        var searchText = $(this).val().toLowerCase().trim();
+
+        $('.attendee-item').each(function() {
+            var $item = $(this);
+            var text = $item.find('.attendee-name').text().toLowerCase();
+
+            if (searchText === '' || text.indexOf(searchText) !== -1) {
+                $item.show();
+            } else {
+                $item.hide();
+            }
+        });
+
+        // 更新计数
+        updateSelectedCount();
+    });
+
+    // 清空搜索
+    $('#clear-search').click(function() {
+        $('#attendee-search').val('').trigger('input');
+    });
+
+    // 更新选中计数
+    $('.attendee-item input').change(function() {
+        updateSelectedCount();
+    });
+
+    // 全选
+    $('#select-all').click(function() {
+        $('.attendee-item input').prop('checked', true);
+        updateSelectedCount();
+    });
+
+    // 全不选
+    $('#deselect-all').click(function() {
+        $('.attendee-item input').prop('checked', false);
+        updateSelectedCount();
+    });
+
+    // 选择可见
+    $('#select-visible').click(function() {
+        $('.attendee-item:visible input').prop('checked', true);
+        updateSelectedCount();
+    });
+
+    // 取消可见
+    $('#deselect-visible').click(function() {
+        $('.attendee-item:visible input').prop('checked', false);
+        updateSelectedCount();
+    });
+
+    // 更新选中计数函数
+    function updateSelectedCount() {
+        var selectedCount = $('.attendee-item input:checked').length;
+        $('#selected-count').text(selectedCount);
+    }
+
+    // ===== 批量操作功能 =====
+
+    // 更新当前参与人复选框状态
+    function updateCurrentAttendeeSelection() {
+        var selectedCount = $('.attendee-checkbox:checked').length;
+        var totalCount = $('.attendee-checkbox').length;
+
+        // 更新全选复选框状态
+        $('#select-all-attendees').prop('checked', selectedCount === totalCount && totalCount > 0);
+
+        // 显示/隐藏批量操作按钮
+        if (selectedCount > 0) {
+            $('#batch-actions').show();
+        } else {
+            $('#batch-actions').hide();
+        }
+    }
+
+    // 当前参与人全选/全不选
+    $('#select-all-attendees').change(function() {
+        $('.attendee-checkbox').prop('checked', $(this).prop('checked'));
+        updateCurrentAttendeeSelection();
+    });
+
+    // 单个复选框状态变化
+    $(document).on('change', '.attendee-checkbox', function() {
+        updateCurrentAttendeeSelection();
+    });
+
+    // 批量设为必须参加
+    $('#batch-mark-required').click(function() {
+        var selectedIds = $('.attendee-checkbox:checked').map(function() {
+            return $(this).val();
+        }).get();
+
+        if (selectedIds.length === 0) {
+            alert('请先选择参与人');
+            return;
+        }
+
+        if (confirm('确定要将选中的 ' + selectedIds.length + ' 名参与人设为必须参加吗？')) {
+            $('#batch-action').val('mark_required');
+            $('#batch-attendee-ids').val(selectedIds.join(','));
+            $('#attendees-batch-form').submit();
+        }
+    });
+
+    // 批量设为可选
+    $('#batch-mark-optional').click(function() {
+        var selectedIds = $('.attendee-checkbox:checked').map(function() {
+            return $(this).val();
+        }).get();
+
+        if (selectedIds.length === 0) {
+            alert('请先选择参与人');
+            return;
+        }
+
+        if (confirm('确定要将选中的 ' + selectedIds.length + ' 名参与人设为可选吗？')) {
+            $('#batch-action').val('mark_optional');
+            $('#batch-attendee-ids').val(selectedIds.join(','));
+            $('#attendees-batch-form').submit();
+        }
+    });
+
+    // 批量移除
+    $('#batch-remove').click(function() {
+        var selectedIds = $('.attendee-checkbox:checked').map(function() {
+            return $(this).val();
+        }).get();
+
+        if (selectedIds.length === 0) {
+            alert('请先选择参与人');
+            return;
+        }
+
+        if (confirm('确定要移除选中的 ' + selectedIds.length + ' 名参与人吗？')) {
+            $('#batch-action').val('batch_remove');
+            $('#batch-attendee-ids').val(selectedIds.join(','));
+            $('#attendees-batch-form').submit();
+        }
+    });
+
+    // 筛选功能
+    $('.filter-option').click(function(e) {
+        e.preventDefault();
+        var filter = $(this).data('filter');
+        var $dropdownButton = $('#filterDropdown');
+
+        // 更新按钮文本
+        var filterText = $(this).text();
+        $dropdownButton.html(filterText + ' <span class="caret"></span>');
+
+        // 应用筛选
+        $('.attendee-row').each(function() {
+            var $row = $(this);
+            var response = $row.data('response');
+            var required = $row.data('required');
+
+            var showRow = true;
+
+            switch(filter) {
+                case 'accepted':
+                    showRow = (response === 'accepted');
+                    break;
+                case 'declined':
+                    showRow = (response === 'declined');
+                    break;
+                case 'pending':
+                    showRow = (response === 'pending');
+                    break;
+                case 'required':
+                    showRow = (required === 'true');
+                    break;
+                case 'optional':
+                    showRow = (required === 'false');
+                    break;
+                case 'all':
+                default:
+                    showRow = true;
+                    break;
+            }
+
+            if (showRow) {
+                $row.show();
+            } else {
+                $row.hide();
+            }
+        });
+    });
+
+    // 初始化计数
+    updateSelectedCount();
+});
+</script>
+{% endblock %}

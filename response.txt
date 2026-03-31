@@ -1,0 +1,1 @@
+{"departments": [{"id": 3, "name": "\u4eba\u4e8b\u5904"}, {"id": 2, "name": "\u4fe1\u606f\u4e2d\u5fc3"}, {"id": 1, "name": "\u529e\u516c\u5ba4"}, {"id": 5, "name": "\u6d4b\u8bd5\u90e8\u95e8"}, {"id": 4, "name": "\u7cfb\u7edf\u7ba1\u7406"}]}

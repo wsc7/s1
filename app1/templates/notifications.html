@@ -1,0 +1,105 @@
+{% extends "meeting-system-base.html" %}
+
+{% block title %}通知中心 - 会议管理系统{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-0">通知中心</h3>
+                <small class="text-muted">
+                    您有 <span class="badge badge-primary">{{ unread_count }}</span> 条未读通知
+                </small>
+            </div>
+            <div>
+                <a href="{% url 'home' %}" class="btn btn-default">返回首页</a>
+            </div>
+        </div>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.level_tag == 'error' %}alert-danger{% elif message.level_tag == 'success' %}alert-success{% else %}alert-info{% endif %} alert-dismissible" role="alert">
+        <button type="button" class="close" data-dismiss="alert" aria-label="关闭"><span aria-hidden="true">&times;</span></button>
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="card">
+        <div class="card-body">
+            {% if notifications %}
+            <div class="list-group">
+                {% for notification in notifications %}
+                <div class="list-group-item {% if notification.status == 'unread' %}list-group-item-info{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center mb-2">
+                                <h5 class="mb-0 mr-2">
+                                    {% if notification.notification_type == 'invitation' %}
+                                    <span class="badge badge-primary">会议邀请</span>
+                                    {% elif notification.notification_type == 'reminder' %}
+                                    <span class="badge badge-warning">会议提醒</span>
+                                    {% elif notification.notification_type == 'update' %}
+                                    <span class="badge badge-info">会议更新</span>
+                                    {% elif notification.notification_type == 'cancellation' %}
+                                    <span class="badge badge-danger">会议取消</span>
+                                    {% endif %}
+                                    {{ notification.title }}
+                                </h5>
+                                {% if notification.status == 'unread' %}
+                                <span class="badge badge-danger">未读</span>
+                                {% endif %}
+                            </div>
+                            <p class="mb-2">{{ notification.content }}</p>
+                            {% if notification.meeting %}
+                            <p class="mb-1">
+                                <small class="text-muted">
+                                    相关会议：{{ notification.meeting.title }}
+                                </small>
+                            </p>
+                            {% endif %}
+                            <small class="text-muted">
+                                {{ notification.created_at|date:"Y-m-d H:i" }}
+                            </small>
+                        </div>
+                        <div class="ml-3">
+                            {% if notification.status == 'unread' %}
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="notification_id" value="{{ notification.id }}">
+                                <button type="submit" name="action" value="mark_read" class="btn btn-sm btn-outline-primary">
+                                    标记已读
+                                </button>
+                            </form>
+                            {% endif %}
+                            <form method="post" class="d-inline ml-1">
+                                {% csrf_token %}
+                                <input type="hidden" name="notification_id" value="{{ notification.id }}">
+                                <button type="submit" name="action" value="dismiss" class="btn btn-sm btn-outline-secondary">
+                                    忽略
+                                </button>
+                            </form>
+                            {% if notification.meeting and notification.notification_type == 'invitation' and notification.status == 'unread' %}
+                            <div class="mt-2">
+                                <a href="{% url 'respond_to_meeting' notification.meeting.id %}" class="btn btn-sm btn-success">
+                                    回复邀请
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <h4 class="text-muted">暂无通知</h4>
+                <p class="text-muted">当有新的会议邀请或提醒时，会在这里显示</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

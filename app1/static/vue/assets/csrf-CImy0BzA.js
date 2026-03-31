@@ -1,0 +1,1 @@
+import{k as e}from"./_plugin-vue_export-helper-8RU9a9nW.js";function t(e){if(!document.cookie)return null;let t=document.cookie.split(`;`);for(let n of t){let t=n.trim();if(t.startsWith(`${e}=`))return decodeURIComponent(t.substring(e.length+1))}return null}function n(){return t(`csrftoken`)}var r=e((()=>{}));export{r as n,n as t};

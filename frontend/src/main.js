@@ -1,7 +1,4 @@
-import { createApp } from 'vue'
 import App from './App.vue'
+import { mountById } from './modal-utils.js'
 
-const el = document.getElementById('vue-meeting-root')
-if (el) {
-  createApp(App).mount(el)
-}
+mountById('vue-meeting-root', App, () => ({}))

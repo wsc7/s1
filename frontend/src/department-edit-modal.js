@@ -1,19 +1,13 @@
-import { createApp } from 'vue'
 import DepartmentEditModal from './components/DepartmentEditModal.vue'
+import { mountBySelector } from './modal-utils.js'
 
-// Find all edit modal containers and mount them
-document.addEventListener('DOMContentLoaded', () => {
-  const editModalElements = document.querySelectorAll('[data-vue-department-edit-modal]')
-
-  editModalElements.forEach(el => {
-    const departmentId = el.dataset.departmentId
-    const apiUrl = el.dataset.apiUrl || '/api/departments/'
-
-    if (departmentId) {
-      createApp(DepartmentEditModal, {
-        departmentId: parseInt(departmentId),
-        apiUrl,
-      }).mount(el)
-    }
-  })
+mountBySelector('[data-vue-department-edit-modal]', DepartmentEditModal, (el) => {
+  const departmentId = el.dataset.departmentId
+  if (!departmentId) {
+    return null
+  }
+  return {
+    departmentId: parseInt(departmentId, 10),
+    apiUrl: el.dataset.apiUrl || '/api/departments/',
+  }
 })

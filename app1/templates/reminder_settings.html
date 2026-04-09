@@ -4,17 +4,7 @@
 
 {% block content %}
 <div class="container my-4">
-    <div class="page-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h3 class="mb-0">提醒设置</h3>
-                <small class="text-muted">自定义您的会议提醒偏好</small>
-            </div>
-            <div>
-                <a href="{% url 'notifications' %}" class="btn btn-default">返回通知中心</a>
-            </div>
-        </div>
-    </div>
+    {% include "page_header.html" with page_title='提醒设置' page_subtitle='自定义您的会议提醒偏好' back_url='/notifications/' back_text='返回通知中心' %}
 
     {% if messages %}
     {% for message in messages %}

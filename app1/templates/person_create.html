@@ -1,26 +1,17 @@
+{% extends "meeting-system-base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>新增人员</title>
-  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-  <style>
-    body { background-color: #f5f6fa; }
-    .page-wrap { max-width: 720px; margin: 2rem auto; }
-  </style>
-</head>
-<body>
-  <nav class="navbar navbar-inverse">
-    <div class="container">
-      <a class="navbar-brand" href="{% url 'people' %}">← 返回人员管理</a>
-    </div>
-  </nav>
 
+{% block title %}新增人员{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-wrap { max-width: 720px; margin: 2rem auto; }
+</style>
+{% endblock %}
+
+{% block content %}
   <div class="container page-wrap">
-    <h3 class="page-header">新增人员</h3>
-    <p class="text-muted">保存后将写入数据库。</p>
+    {% include "page_header.html" with page_title='新增人员' page_subtitle='保存后将写入数据库。' back_url='/people/' back_text='返回人员列表' %}
 
     <form method="post" class="form-horizontal">
       {% csrf_token %}
@@ -46,8 +37,4 @@
       </div>
     </form>
   </div>
-
-  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-</body>
-</html>
+{% endblock %}

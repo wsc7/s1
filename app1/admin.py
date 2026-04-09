@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Meeting, Person, Department
+from .models import Meeting, Person, Department, MeetingAgendaItem, MeetingAgendaItemAssignee
 
 
 @admin.register(Department)
@@ -21,3 +21,19 @@ class MeetingAdmin(admin.ModelAdmin):
     list_filter = ('status',)
     search_fields = ('title', 'location')
     raw_id_fields = ('organizer',)
+
+
+@admin.register(MeetingAgendaItem)
+class MeetingAgendaItemAdmin(admin.ModelAdmin):
+    list_display = ('title', 'meeting', 'start_time', 'end_time', 'status')
+    list_filter = ('status',)
+    search_fields = ('title', 'meeting__title')
+    raw_id_fields = ('meeting',)
+
+
+@admin.register(MeetingAgendaItemAssignee)
+class MeetingAgendaItemAssigneeAdmin(admin.ModelAdmin):
+    list_display = ('agenda_item', 'person', 'is_completed')
+    list_filter = ('is_completed',)
+    search_fields = ('agenda_item__title', 'person__name')
+    raw_id_fields = ('agenda_item', 'person')

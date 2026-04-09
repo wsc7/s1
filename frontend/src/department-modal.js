@@ -1,14 +1,7 @@
-import { createApp } from 'vue'
 import DepartmentModal from './components/DepartmentModal.vue'
+import { mountById } from './modal-utils.js'
 
-document.addEventListener('DOMContentLoaded', () => {
-  const el = document.getElementById('vue-departments-toolbar')
-  if (el) {
-    const apiUrl = el.dataset.apiUrl || '/api/departments/create/'
-    const fullPageUrl = el.dataset.fullPageUrl || '/departments/add/'
-    createApp(DepartmentModal, {
-      apiUrl,
-      fullPageUrl,
-    }).mount(el)
-  }
-})
+mountById('vue-departments-toolbar', DepartmentModal, (el) => ({
+  apiUrl: el.dataset.apiUrl || '/api/departments/create/',
+  fullPageUrl: el.dataset.fullPageUrl || '/departments/add/',
+}))

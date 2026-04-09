@@ -1,0 +1,90 @@
+{% extends "meeting-system-base.html" %}
+{% load static %}
+
+{% block title %}会议纪要 - {{ meeting.title }} - 附件信息{% endblock %}
+
+{% block extra_css %}
+<style>
+  .detail-nav { margin: 15px 0 20px; }
+  .meeting-meta { margin-bottom: 20px; }
+  .meeting-meta p { margin-bottom: 6px; }
+  .attachment-table td { vertical-align: middle; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "meeting_detail_header.html" with active_tab='attachments' meta_label_3='时间' meta_value_3=meeting.start_time|date:"Y-m-d H:i" meta_label_4='附件' meta_value_4=attachments|length|stringformat:'s'|add:' 个' %}
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">上传附件</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {% if attachment_form.non_field_errors %}
+                        <div class="alert alert-danger">{{ attachment_form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <div class="form-group{% if attachment_form.file.errors %} has-error{% endif %}">
+                            <label for="{{ attachment_form.file.id_for_label }}">{{ attachment_form.file.label }}</label>
+                            {{ attachment_form.file }}
+                            {% if attachment_form.file.errors %}
+                            <span class="help-block">{{ attachment_form.file.errors|striptags }}</span>
+                            {% endif %}
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">上传附件</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">当前附件 ({{ attachments|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if attachments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover attachment-table">
+                            <thead>
+                                <tr>
+                                    <th>文件名</th>
+                                    <th>上传人</th>
+                                    <th>上传时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attachment in attachments %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ attachment.filename }}</strong>
+                                    </td>
+                                    <td>{{ attachment.uploaded_by.username|default:"-" }}</td>
+                                    <td>{{ attachment.uploaded_at|date:"Y-m-d H:i" }}</td>
+                                    <td>
+                                        <a href="{{ attachment.file.url }}" class="btn btn-xs btn-default" target="_blank">下载</a>
+                                        <form method="post" action="{% url 'remove_attachment' meeting.id attachment.id %}" class="inline-form-delete" onsubmit="return confirm('确定要删除该附件吗？');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-xs btn-danger">删除</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">暂无附件</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

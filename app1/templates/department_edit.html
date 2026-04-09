@@ -1,26 +1,17 @@
+{% extends "meeting-system-base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>编辑部门 - {{ department.name }}</title>
-  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-  <style>
-    body { background-color: #f5f6fa; }
-    .page-wrap { max-width: 720px; margin: 2rem auto; }
-  </style>
-</head>
-<body>
-  <nav class="navbar navbar-inverse">
-    <div class="container">
-      <a class="navbar-brand" href="{% url 'departments' %}">← 返回部门管理</a>
-    </div>
-  </nav>
 
+{% block title %}编辑部门 - {{ department.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-wrap { max-width: 720px; margin: 2rem auto; }
+</style>
+{% endblock %}
+
+{% block content %}
   <div class="container page-wrap">
-    <h3 class="page-header">编辑部门</h3>
-    <p class="text-muted">正在编辑：<strong>{{ department.name }}</strong></p>
+    {% include "page_header.html" with page_title='编辑部门' page_subtitle=department.name back_url='/departments/' back_text='返回部门列表' %}
 
     <form method="post" class="form-horizontal">
       {% csrf_token %}
@@ -55,8 +46,4 @@
       </div>
     </form>
   </div>
-
-  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-</body>
-</html>
+{% endblock %}

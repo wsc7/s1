@@ -1,10 +1,17 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import PasswordChangeForm
-from .models import Meeting, Person, MeetingAttendee, MeetingAttachment, Notification, ReminderSetting, Department
+from .models import Meeting, Person, MeetingAttendee, MeetingAttachment, Notification, ReminderSetting, Department, MeetingAgendaItem
 
 
-class PersonForm(forms.ModelForm):
+DATETIME_INPUT_FORMATS = ['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M']
+
+
+def configure_datetime_field(field):
+    field.input_formats = DATETIME_INPUT_FORMATS
+
+
+class BasePersonForm(forms.ModelForm):
     class Meta:
         model = Person
         fields = ['name', 'employee_no', 'department', 'position', 'role', 'phone']
@@ -27,9 +34,12 @@ class PersonForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # 设置部门字段的查询集，按名称排序
         self.fields['department'].queryset = Department.objects.all().order_by('name')
         self.fields['department'].empty_label = '— 请选择部门 —'
+
+
+class PersonForm(BasePersonForm):
+    pass
 
 
 class MeetingForm(forms.ModelForm):
@@ -74,11 +84,15 @@ class MeetingForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        fmts = ['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M']
-        self.fields['start_time'].input_formats = fmts
-        self.fields['end_time'].input_formats = fmts
+        configure_datetime_field(self.fields['start_time'])
+        configure_datetime_field(self.fields['end_time'])
         self.fields['organizer'].queryset = Person.objects.all().order_by('name')
         self.fields['organizer'].empty_label = '— 未指定 —'
+        self.fields['status'].choices = [
+            (Meeting.STATUS_PENDING, '待审批'),
+            (Meeting.STATUS_APPROVED_PENDING, '审批通过未开始'),
+            (Meeting.STATUS_REJECTED, '审批未通过'),
+        ]
 
 
 class MeetingAttendeeForm(forms.ModelForm):
@@ -146,6 +160,57 @@ class MeetingAttachmentForm(forms.ModelForm):
         }
 
 
+class MeetingAgendaItemForm(forms.ModelForm):
+    assignees = forms.ModelMultipleChoiceField(
+        queryset=Person.objects.none(),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        required=False,
+        label='事项人员',
+    )
+
+    class Meta:
+        model = MeetingAgendaItem
+        fields = ['title', 'start_time', 'end_time', 'status']
+        labels = {
+            'title': '事项',
+            'start_time': '开始时间',
+            'end_time': '结束时间',
+            'status': '状态',
+        }
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'start_time': forms.DateTimeInput(
+                attrs={'class': 'form-control', 'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M',
+            ),
+            'end_time': forms.DateTimeInput(
+                attrs={'class': 'form-control', 'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M',
+            ),
+            'status': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        meeting = kwargs.pop('meeting', None)
+        super().__init__(*args, **kwargs)
+        configure_datetime_field(self.fields['start_time'])
+        configure_datetime_field(self.fields['end_time'])
+        if meeting:
+            attendee_ids = meeting.attendees.values_list('person_id', flat=True)
+            queryset = Person.objects.filter(id__in=attendee_ids).order_by('department', 'name')
+            self.fields['assignees'].queryset = queryset
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
+
+        if start_time and end_time and start_time > end_time:
+            self.add_error('end_time', '结束时间不能早于开始时间')
+
+        return cleaned_data
+
+
 class NotificationForm(forms.ModelForm):
     """通知表单"""
 
@@ -172,8 +237,7 @@ class NotificationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        fmts = ['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M']
-        self.fields['scheduled_time'].input_formats = fmts
+        configure_datetime_field(self.fields['scheduled_time'])
 
 
 class ReminderSettingForm(forms.ModelForm):
@@ -204,33 +268,9 @@ class ReminderSettingForm(forms.ModelForm):
         }
 
 
-class PersonProfileForm(forms.ModelForm):
+class PersonProfileForm(BasePersonForm):
     """个人资料编辑表单"""
-    class Meta:
-        model = Person
-        fields = ['name', 'employee_no', 'department', 'position', 'role', 'phone']
-        labels = {
-            'name': '姓名',
-            'employee_no': '工号',
-            'department': '部门',
-            'position': '职务',
-            'role': '角色',
-            'phone': '联系方式',
-        }
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
-            'employee_no': forms.TextInput(attrs={'class': 'form-control'}),
-            'department': forms.Select(attrs={'class': 'form-control'}),
-            'position': forms.TextInput(attrs={'class': 'form-control'}),
-            'role': forms.TextInput(attrs={'class': 'form-control'}),
-            'phone': forms.TextInput(attrs={'class': 'form-control'}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # 设置部门字段的查询集，按名称排序
-        self.fields['department'].queryset = Department.objects.all().order_by('name')
-        self.fields['department'].empty_label = '— 请选择部门 —'
+    pass
 
 
 class UserProfileForm(forms.ModelForm):

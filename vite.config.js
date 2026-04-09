@@ -14,11 +14,13 @@ module.exports = defineConfig({
       input: {
         meetingApp: path.resolve(__dirname, 'frontend/src/main.js'),
         meetingsModal: path.resolve(__dirname, 'frontend/src/meetings-modal.js'),
+        meetingApprovalModal: path.resolve(__dirname, 'frontend/src/meeting-approval-modal.js'),
         meetingAttendeesModal: path.resolve(__dirname, 'frontend/src/meeting-attendees-modal.js'),
         peopleModal: path.resolve(__dirname, 'frontend/src/people-modal.js'),
         peopleEditModal: path.resolve(__dirname, 'frontend/src/people-edit-modal.js'),
         departmentModal: path.resolve(__dirname, 'frontend/src/department-modal.js'),
         departmentEditModal: path.resolve(__dirname, 'frontend/src/department-edit-modal.js'),
+        agendaItemEditModal: path.resolve(__dirname, 'frontend/src/agenda-item-edit-modal.js'),
       },
       output: {
         format: 'es',
@@ -26,11 +28,13 @@ module.exports = defineConfig({
           const map = {
             meetingApp: 'meeting-app.js',
             meetingsModal: 'meetings-modal.js',
+            meetingApprovalModal: 'meeting-approval-modal.js',
             meetingAttendeesModal: 'meeting-attendees-modal.js',
             peopleModal: 'people-modal.js',
             peopleEditModal: 'people-edit-modal.js',
             departmentModal: 'department-modal.js',
             departmentEditModal: 'department-edit-modal.js',
+            agendaItemEditModal: 'agenda-item-edit-modal.js',
           }
           return map[chunkInfo.name] || '[name].js'
         },

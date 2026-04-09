@@ -1,61 +1,59 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>注册 - 会议管理系统</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-    <style>
-        body {
-            background-color: #f5f5f5;
-            padding-top: 80px;
-        }
-        .register-container {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 40px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        .register-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .register-header h2 {
-            color: #333;
-            margin: 0;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .btn-register {
-            width: 100%;
-            padding: 12px;
-            background-color: #5cb85c;
-            border: none;
-            font-size: 16px;
-        }
-        .btn-register:hover {
-            background-color: #449d44;
-        }
-        .messages {
-            margin-bottom: 20px;
-        }
-        .alert {
-            margin-bottom: 0;
-        }
-        .form-note {
-            font-size: 12px;
-            color: #999;
-            margin-top: 5px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="register-container">
-            <div class="register-header">
+{% extends "meeting-system-base.html" %}
+{% load static %}
+
+{% block title %}注册 - 会议管理系统{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-wrap {
+        max-width: 400px;
+        margin: 2rem auto;
+    }
+    .auth-card {
+        padding: 40px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .auth-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .auth-header h2 {
+        color: #333;
+        margin: 0;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .btn-register {
+        width: 100%;
+        padding: 12px;
+        background-color: #5cb85c;
+        border: none;
+        font-size: 16px;
+    }
+    .btn-register:hover {
+        background-color: #449d44;
+    }
+    .messages {
+        margin-bottom: 20px;
+    }
+    .alert {
+        margin-bottom: 0;
+    }
+    .form-note {
+        font-size: 12px;
+        color: #999;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="container auth-wrap">
+        <div class="auth-card">
+            <div class="auth-header">
                 <h2>会议管理系统</h2>
                 <p style="color: #666; margin-top: 10px;">创建新账户</p>
             </div>
@@ -130,8 +128,4 @@
             </div>
         </div>
     </div>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-</body>
-</html>
+{% endblock %}

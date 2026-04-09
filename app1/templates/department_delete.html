@@ -1,24 +1,18 @@
+{% extends "meeting-system-base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>删除部门 - {{ department.name }}</title>
-  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-  <style>
-    body { background-color: #f5f6fa; }
-    .page-wrap { max-width: 720px; margin: 2rem auto; }
-  </style>
-</head>
-<body>
-  <nav class="navbar navbar-inverse">
-    <div class="container">
-      <a class="navbar-brand" href="{% url 'departments' %}">← 返回部门管理</a>
-    </div>
-  </nav>
 
+{% block title %}删除部门 - {{ department.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-wrap { max-width: 720px; margin: 2rem auto; }
+</style>
+{% endblock %}
+
+{% block content %}
   <div class="container page-wrap">
+    {% include "page_header.html" with page_title='删除部门' page_subtitle=department.name back_url='/departments/' back_text='返回部门列表' %}
+
     <div class="card">
       <div class="card-header">
         <h4 class="mb-0">确认删除部门</h4>
@@ -46,8 +40,4 @@
       </div>
     </div>
   </div>
-
-  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-</body>
-</html>
+{% endblock %}

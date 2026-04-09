@@ -68,9 +68,8 @@ const props = defineProps({
 
 const statusChoices = [
   { value: 'pending', label: '待审批' },
-  { value: 'approved', label: '已通过' },
-  { value: 'done', label: '已结束' },
-  { value: 'cancelled', label: '已取消' },
+  { value: 'approved_pending', label: '审批通过未开始' },
+  { value: 'rejected', label: '审批未通过' },
 ]
 
 const show = ref(false)

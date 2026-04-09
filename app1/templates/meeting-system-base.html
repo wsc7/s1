@@ -76,8 +76,8 @@
           <li class="nav-item{% if request.path|slice:':13' == '/departments/' or request.path == '/departments' %} active{% endif %}">
             <a class="nav-link" href="/departments"{% if request.path|slice:':13' == '/departments/' or request.path == '/departments' %} aria-current="page"{% endif %}>部门管理</a>
           </li>
-          <li class="nav-item{% if request.path|slice:':14' == '/notifications/' or request.path == '/notifications' %} active{% endif %}">
-            <a class="nav-link" href="/notifications"{% if request.path|slice:':14' == '/notifications/' or request.path == '/notifications' %} aria-current="page"{% endif %}>通知中心</a>
+          <li class="nav-item{% if request.path|slice:':15' == '/notifications/' or request.path == '/notifications' %} active{% endif %}">
+            <a class="nav-link" href="/notifications"{% if request.path|slice:':15' == '/notifications/' or request.path == '/notifications' %} aria-current="page"{% endif %}>通知中心</a>
           </li>
           {% if user.is_authenticated %}
           <li class="dropdown">

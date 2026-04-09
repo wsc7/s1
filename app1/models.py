@@ -1,8 +1,9 @@
 
 from pathlib import Path
 
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
+from django.utils import timezone
 
 
 class Department(models.Model):
@@ -56,14 +57,18 @@ class Meeting(models.Model):
     """会议（与会议管理页字段对应）"""
 
     STATUS_PENDING = 'pending'
-    STATUS_APPROVED = 'approved'
+    STATUS_APPROVED_PENDING = 'approved_pending'
+    STATUS_IN_PROGRESS = 'in_progress'
     STATUS_DONE = 'done'
-    STATUS_CANCELLED = 'cancelled'
+    STATUS_EXPIRED_CANCELLED = 'expired_cancelled'
+    STATUS_REJECTED = 'rejected'
     STATUS_CHOICES = [
         (STATUS_PENDING, '待审批'),
-        (STATUS_APPROVED, '已通过'),
+        (STATUS_APPROVED_PENDING, '审批通过未开始'),
+        (STATUS_IN_PROGRESS, '进行中'),
         (STATUS_DONE, '已结束'),
-        (STATUS_CANCELLED, '已取消'),
+        (STATUS_EXPIRED_CANCELLED, '未审批过期已取消'),
+        (STATUS_REJECTED, '审批未通过'),
     ]
 
     title = models.CharField('会议主题', max_length=200)
@@ -101,10 +106,43 @@ class Meeting(models.Model):
     def status_badge_class(self):
         return {
             self.STATUS_PENDING: 'warning',
-            self.STATUS_APPROVED: 'primary',
+            self.STATUS_APPROVED_PENDING: 'primary',
+            self.STATUS_IN_PROGRESS: 'info',
             self.STATUS_DONE: 'success',
-            self.STATUS_CANCELLED: 'default',
+            self.STATUS_EXPIRED_CANCELLED: 'default',
+            self.STATUS_REJECTED: 'danger',
         }.get(self.status, 'default')
+
+    def refresh_status(self, now=None):
+        now = now or timezone.now()
+        next_status = self.status
+
+        if self.status == self.STATUS_PENDING and now >= self.start_time:
+            next_status = self.STATUS_EXPIRED_CANCELLED
+        elif self.status == self.STATUS_APPROVED_PENDING:
+            if now >= self.end_time:
+                next_status = self.STATUS_DONE
+            elif now >= self.start_time:
+                next_status = self.STATUS_IN_PROGRESS
+        elif self.status == self.STATUS_IN_PROGRESS and now >= self.end_time:
+            next_status = self.STATUS_DONE
+
+        if next_status != self.status:
+            self.status = next_status
+            self.save(update_fields=['status', 'updated_at'])
+
+        return self.status
+
+    @classmethod
+    def refresh_all_statuses(cls, now=None):
+        now = now or timezone.now()
+        meetings = list(cls.objects.filter(status__in=[
+            cls.STATUS_PENDING,
+            cls.STATUS_APPROVED_PENDING,
+            cls.STATUS_IN_PROGRESS,
+        ]))
+        for meeting in meetings:
+            meeting.refresh_status(now=now)
 
 
 class MeetingAttendee(models.Model):

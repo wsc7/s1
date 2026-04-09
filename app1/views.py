@@ -68,6 +68,26 @@ def _handle_post_delete(request, obj, *, success_message, redirect_name, redirec
     return redirect(redirect_name, **(redirect_kwargs or {}))
 
 
+def _create_meeting_approval_notification(meeting, *, approved, opinion):
+    organizer = meeting.organizer
+    if not organizer or not organizer.user:
+        return
+
+    result_text = '已通过' if approved else '未通过'
+    opinion_text = opinion.strip() if opinion and opinion.strip() else '无审批意见'
+    Notification.objects.create(
+        recipient=organizer.user,
+        notification_type=Notification.TYPE_MEETING_UPDATE,
+        title=f'会议审批结果：{result_text}',
+        content=(
+            f'会议主题：{meeting.title}\n'
+            f'审批结果：{result_text}\n'
+            f'审批意见：{opinion_text}'
+        ),
+        meeting=meeting,
+    )
+
+
 @login_required
 def home(request):
     return _render_home(request)
@@ -75,6 +95,7 @@ def home(request):
 
 @login_required
 def meetings(request):
+    Meeting.refresh_all_statuses()
     qs = Meeting.objects.select_related('organizer').all()
     q = request.GET.get('q', '').strip()
     date_str = request.GET.get('date', '').strip()
@@ -215,6 +236,7 @@ def meeting_detail(request, pk):
 @login_required
 def meeting_info(request, pk):
     meeting = get_object_or_404(Meeting, pk=pk)
+    meeting.refresh_status()
     meeting_form = MeetingForm(instance=meeting)
 
     if request.method == 'POST':
@@ -242,6 +264,7 @@ def meeting_edit(request, pk):
 @login_required
 def meeting_attachments(request, pk):
     meeting = get_object_or_404(Meeting, pk=pk)
+    meeting.refresh_status()
     attachment_form = MeetingAttachmentForm()
 
     if request.method == 'POST':
@@ -269,6 +292,7 @@ def meeting_attachments(request, pk):
 @login_required
 def meeting_agenda(request, pk):
     meeting = get_object_or_404(Meeting, pk=pk)
+    meeting.refresh_status()
     agenda_form = MeetingAgendaItemForm(meeting=meeting)
 
     if request.method == 'POST' and request.POST.get('action') == 'toggle_completion':
@@ -318,6 +342,7 @@ def meeting_agenda(request, pk):
 @login_required
 def meeting_attendees(request, meeting_id):
     meeting = get_object_or_404(Meeting, pk=meeting_id)
+    meeting.refresh_status()
     attendees_form = MeetingAttendeesForm(meeting=meeting)
     action = request.POST.get('action', '')
 
@@ -509,6 +534,36 @@ def api_meeting_create(request):
     if isinstance(data, dict) and data.get('organizer') in ('', None):
         data = {**data, 'organizer': ''}
     return _save_form_json_response(MeetingForm(data))
+
+
+@login_required
+def api_meeting_approve(request, pk):
+    meeting = get_object_or_404(Meeting, pk=pk)
+
+    if request.method != 'POST':
+        return _method_not_allowed_json_response()
+
+    data, error_response = _parse_json_request(request)
+    if error_response:
+        return error_response
+
+    if not isinstance(data, dict):
+        return JsonResponse(INVALID_JSON_RESPONSE, status=400)
+
+    meeting.refresh_status()
+    if meeting.status != Meeting.STATUS_PENDING:
+        return JsonResponse({'ok': False, 'errors': {'_': ['该会议当前状态不可审批']}}, status=400)
+
+    action = (data.get('action') or '').strip()
+    opinion = (data.get('opinion') or '').strip()
+    if action not in ['approve', 'reject']:
+        return JsonResponse({'ok': False, 'errors': {'action': ['无效的审批操作']}}, status=400)
+
+    approved = action == 'approve'
+    meeting.status = Meeting.STATUS_APPROVED_PENDING if approved else Meeting.STATUS_REJECTED
+    meeting.save(update_fields=['status', 'updated_at'])
+    _create_meeting_approval_notification(meeting, approved=approved, opinion=opinion)
+    return JsonResponse({'ok': True})
 
 
 def api_person_detail(request, pk):
@@ -743,7 +798,7 @@ def check_and_send_reminders():
 
     # 查找需要发送提醒的会议
     upcoming_meetings = Meeting.objects.filter(
-        status=Meeting.STATUS_APPROVED,
+        status=Meeting.STATUS_APPROVED_PENDING,
         start_time__gt=now,
         start_time__lte=now + timedelta(hours=2)  # 2小时内开始的会议
     )

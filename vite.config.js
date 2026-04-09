@@ -14,6 +14,7 @@ module.exports = defineConfig({
       input: {
         meetingApp: path.resolve(__dirname, 'frontend/src/main.js'),
         meetingsModal: path.resolve(__dirname, 'frontend/src/meetings-modal.js'),
+        meetingApprovalModal: path.resolve(__dirname, 'frontend/src/meeting-approval-modal.js'),
         meetingAttendeesModal: path.resolve(__dirname, 'frontend/src/meeting-attendees-modal.js'),
         peopleModal: path.resolve(__dirname, 'frontend/src/people-modal.js'),
         peopleEditModal: path.resolve(__dirname, 'frontend/src/people-edit-modal.js'),
@@ -27,6 +28,7 @@ module.exports = defineConfig({
           const map = {
             meetingApp: 'meeting-app.js',
             meetingsModal: 'meetings-modal.js',
+            meetingApprovalModal: 'meeting-approval-modal.js',
             meetingAttendeesModal: 'meeting-attendees-modal.js',
             peopleModal: 'people-modal.js',
             peopleEditModal: 'people-edit-modal.js',

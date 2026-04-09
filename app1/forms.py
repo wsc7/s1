@@ -88,6 +88,11 @@ class MeetingForm(forms.ModelForm):
         configure_datetime_field(self.fields['end_time'])
         self.fields['organizer'].queryset = Person.objects.all().order_by('name')
         self.fields['organizer'].empty_label = '— 未指定 —'
+        self.fields['status'].choices = [
+            (Meeting.STATUS_PENDING, '待审批'),
+            (Meeting.STATUS_APPROVED_PENDING, '审批通过未开始'),
+            (Meeting.STATUS_REJECTED, '审批未通过'),
+        ]
 
 
 class MeetingAttendeeForm(forms.ModelForm):

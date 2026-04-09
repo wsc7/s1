@@ -1,5 +1,5 @@
 <div class="container my-4">
-    {% include "page_header.html" with page_title='会议详情' page_subtitle=meeting.title back_url=meeting_list_url|default:'/meetings/' back_text='返回会议列表' %}
+    {% include "page_header.html" with page_title='会议纪要' page_subtitle=meeting.title back_url=meeting_list_url|default:'/meetings/' back_text='返回会议列表' %}
 
     {% if messages %}
     {% for message in messages %}
@@ -21,9 +21,9 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-3"><p><strong>发起人：</strong>{{ meeting.organizer.name|default:"未指定" }}</p></div>
-                <div class="col-md-3"><p><strong>状态：</strong>{{ meeting.get_status_display }}</p></div>
                 <div class="col-md-3"><p><strong>{{ meta_label_3|default:"时间" }}：</strong>{{ meta_value_3 }}</p></div>
                 <div class="col-md-3"><p><strong>{{ meta_label_4 }}：</strong>{{ meta_value_4 }}</p></div>
+                <div class="col-md-3"><p><strong>状态：</strong>{{ meeting.get_status_display }}</p></div>
             </div>
         </div>
     </div>

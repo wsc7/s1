@@ -39,6 +39,7 @@ urlpatterns = [
     path('api/people/<int:pk>/', views.api_person_detail, name='api_person_detail'),
     path('api/people/<int:pk>/update/', views.api_person_update, name='api_person_update'),
     path('api/meetings/create/', views.api_meeting_create, name='api_meeting_create'),
+    path('api/meetings/<int:pk>/approve/', views.api_meeting_approve, name='api_meeting_approve'),
     path('api/meetings/<int:meeting_id>/agenda-items/<int:item_id>/', views.api_meeting_agenda_item_detail, name='api_meeting_agenda_item_detail'),
     path('api/meetings/<int:meeting_id>/agenda-items/<int:item_id>/update/', views.api_meeting_agenda_item_update, name='api_meeting_agenda_item_update'),
     path('api/check-auth/', views.api_check_auth, name='api_check_auth'),

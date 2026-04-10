@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(git -C \"/c/Users/wsc/l12/s1\" status --short)",
+      "mcp__chrome-devtools__new_page",
+      "mcp__playwright__browser_snapshot",
+      "Bash(ls /root)",
+      "Bash(ls /home)",
+      "Bash(ls /workspace)",
+      "Bash(ls /app)",
+      "Bash(xargs grep:*)",
+      "Bash(npm run:*)",
+      "mcp__playwright__browser_navigate",
+      "Bash(python3:*)",
+      "Bash(awk ':*)",
+      "Bash(sed -i 's/class=\"d-inline inline-form-delete\"//g;:*)",
+      "Read(//tmp/**)",
+      "Bash(mktemp)"
+    ]
+  }
+}

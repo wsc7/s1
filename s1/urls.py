@@ -25,6 +25,7 @@ urlpatterns = [
     path('meetings/<int:pk>/attachments/', views.meeting_attachments, name='meeting_attachments'),
     path('meetings/<int:pk>/agenda/', views.meeting_agenda, name='meeting_agenda'),
     path('meetings/<int:pk>/delete/', views.meeting_delete, name='meeting_delete'),
+    path('meetings/<int:pk>/apply/', views.meeting_apply, name='meeting_apply'),
     path('meetings/<int:meeting_id>/agenda/items/<int:item_id>/delete/', views.meeting_agenda_item_delete, name='meeting_agenda_item_delete'),
     path('people/', views.people, name='people'),
     path('people/add/', views.person_create, name='person_create'),

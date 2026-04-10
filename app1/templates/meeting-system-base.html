@@ -41,6 +41,23 @@
       margin-left: 4px;
       vertical-align: middle;
     }
+    /* 操作列按钮组：flex 横排，自动换行，统一间距，右对齐 */
+    .btn-action-group {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+    /* 按钮组内的 form 不产生额外尺寸 */
+    .btn-action-group form {
+      display: contents;
+    }
+    /* 操作列表头和单元格不换行，保证列宽足够 */
+    th.text-end,
+    td.text-end {
+      white-space: nowrap;
+    }
     .badge {
       font-size: 0.8rem;
     }

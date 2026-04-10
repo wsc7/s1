@@ -56,6 +56,7 @@ class Person(models.Model):
 class Meeting(models.Model):
     """会议（与会议管理页字段对应）"""
 
+    STATUS_DRAFT = 'draft'
     STATUS_PENDING = 'pending'
     STATUS_APPROVED_PENDING = 'approved_pending'
     STATUS_IN_PROGRESS = 'in_progress'
@@ -63,6 +64,7 @@ class Meeting(models.Model):
     STATUS_EXPIRED_CANCELLED = 'expired_cancelled'
     STATUS_REJECTED = 'rejected'
     STATUS_CHOICES = [
+        (STATUS_DRAFT, '草稿'),
         (STATUS_PENDING, '待审批'),
         (STATUS_APPROVED_PENDING, '审批通过未开始'),
         (STATUS_IN_PROGRESS, '进行中'),
@@ -105,6 +107,7 @@ class Meeting(models.Model):
     @property
     def status_badge_class(self):
         return {
+            self.STATUS_DRAFT: 'secondary',
             self.STATUS_PENDING: 'warning',
             self.STATUS_APPROVED_PENDING: 'primary',
             self.STATUS_IN_PROGRESS: 'info',

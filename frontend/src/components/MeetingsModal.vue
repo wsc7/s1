@@ -35,20 +35,17 @@
         <input v-model.number="form.attendee_count" type="number" min="0" class="form-control">
       </div>
       <div class="form-group">
-        <label>状态</label>
-        <select v-model="form.status" class="form-control">
-          <option v-for="s in statusChoices" :key="s.value" :value="s.value">{{ s.label }}</option>
-        </select>
-      </div>
-      <div class="form-group">
         <label>说明</label>
         <textarea v-model="form.description" class="form-control" rows="3"></textarea>
       </div>
 
       <template #footer>
         <button type="button" class="btn btn-default" @click="close">取消</button>
-        <button type="button" class="btn btn-primary" :disabled="submitting" @click="submit">
-          {{ submitting ? '保存中…' : '保存' }}
+        <button type="button" class="btn btn-default" :disabled="!!submitting" @click="submit('draft')">
+          {{ submitting === 'draft' ? '保存中…' : '保存' }}
+        </button>
+        <button type="button" class="btn btn-primary" :disabled="!!submitting" @click="submit('pending')">
+          {{ submitting === 'pending' ? '申请中…' : '申请' }}
         </button>
       </template>
     </ModalShell>
@@ -66,13 +63,8 @@ const props = defineProps({
   organizers: { type: Array, default: () => [] },
 })
 
-const statusChoices = [
-  { value: 'pending', label: '待审批' },
-  { value: 'approved_pending', label: '审批通过未开始' },
-  { value: 'rejected', label: '审批未通过' },
-]
-
 const show = ref(false)
+// submitting 存储当前正在提交的动作名（'draft' | 'pending' | false）
 const submitting = ref(false)
 const errorMsg = ref('')
 const form = reactive({
@@ -82,7 +74,6 @@ const form = reactive({
   end_time: '',
   location: '',
   attendee_count: 0,
-  status: 'pending',
   description: '',
 })
 
@@ -95,7 +86,6 @@ function open() {
     end_time: '',
     location: '',
     attendee_count: 0,
-    status: 'pending',
     description: '',
   })
   show.value = true
@@ -105,35 +95,34 @@ function close() {
   show.value = false
 }
 
-function payload() {
+function buildPayload(status) {
   const body = {
     title: form.title,
     location: form.location,
     attendee_count: form.attendee_count || 0,
-    status: form.status,
+    status,
     description: form.description,
     start_time: form.start_time,
     end_time: form.end_time,
-  }
-  if (form.organizer) {
-    body.organizer = form.organizer
-  } else {
-    body.organizer = ''
+    organizer: form.organizer || '',
   }
   return body
 }
 
-async function submit() {
+/**
+ * @param {'draft'|'pending'} status - 保存草稿传 'draft'，申请审批传 'pending'
+ */
+async function submit(status) {
   if (!form.title.trim() || !form.start_time || !form.end_time) {
     errorMsg.value = '请填写主题、开始时间与结束时间。'
     return
   }
-  submitting.value = true
+  submitting.value = status
   errorMsg.value = ''
   try {
     const data = await submitJson(props.apiUrl, {
       method: 'POST',
-      body: payload(),
+      body: buildPayload(status),
     })
     if (data.ok) {
       window.location.reload()

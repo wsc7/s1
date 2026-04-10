@@ -100,6 +100,17 @@ def meetings(request):
     q = request.GET.get('q', '').strip()
     date_str = request.GET.get('date', '').strip()
     status = request.GET.get('status', '').strip()
+    view_type = request.GET.get('view', 'all').strip()
+
+    # 「我的会议」：仅展示当前用户发起的会议
+    current_person = None
+    if view_type == 'mine':
+        try:
+            current_person = request.user.person_profile
+            qs = qs.filter(organizer=current_person)
+        except Person.DoesNotExist:
+            qs = qs.none()
+
     if q:
         qs = qs.filter(Q(title__icontains=q) | Q(organizer__name__icontains=q))
     if date_str:
@@ -121,6 +132,8 @@ def meetings(request):
         {
             'meeting_list': meeting_list,
             'organizers_json': json.dumps(organizers, ensure_ascii=False),
+            'view_type': view_type,
+            'current_person': current_person,
         },
     )
 
@@ -441,6 +454,43 @@ def meeting_delete(request, pk):
         redirect_name='meetings',
         invalid_method_message='请通过页面上的删除按钮操作。',
     )
+
+
+@login_required
+def meeting_apply(request, pk):
+    """将草稿/未通过会议提交申请（状态改为待审批）"""
+    meeting = get_object_or_404(Meeting, pk=pk)
+    if request.method != 'POST':
+        messages.error(request, '请通过页面上的申请按钮操作。')
+        return redirect('meetings', )
+    if meeting.status not in (Meeting.STATUS_DRAFT, Meeting.STATUS_REJECTED):
+        messages.error(request, '该会议当前状态不可提交申请。')
+        return redirect('meetings')
+    meeting.status = Meeting.STATUS_PENDING
+    meeting.save(update_fields=['status', 'updated_at'])
+
+    # 通知所有管理员（is_staff=True）有新会议待审批
+    organizer_name = meeting.organizer.name if meeting.organizer else '未知'
+    start_time_str = meeting.start_time.strftime('%Y-%m-%d %H:%M') if meeting.start_time else '未设置'
+    admin_users = User.objects.filter(is_staff=True)
+    Notification.objects.bulk_create([
+        Notification(
+            recipient=admin,
+            notification_type=Notification.TYPE_MEETING_UPDATE,
+            title=f'新会议待审批：{meeting.title}',
+            content=(
+                f'会议主题：{meeting.title}\n'
+                f'发起人：{organizer_name}\n'
+                f'开始时间：{start_time_str}\n'
+                f'请登录系统进行审批。'
+            ),
+            meeting=meeting,
+        )
+        for admin in admin_users
+    ])
+
+    messages.success(request, f'会议「{meeting.title}」已提交申请，等待审批。')
+    return redirect(f'{request.META.get("HTTP_REFERER", "/meetings/")}' if 'view=mine' in request.META.get('HTTP_REFERER', '') else '/meetings/?view=mine')
 
 
 @login_required

@@ -1,7 +1,6 @@
 <template>
   <div class="vue-toolbar">
     <button type="button" class="btn btn-primary" @click="open">新增部门</button>
-    <a :href="fullPageUrl" class="btn btn-link btn-sm">或使用完整页面</a>
 
     <ModalShell :show="show" title="新增部门" @close="close">
       <p v-if="errorMsg" class="text-danger small">{{ errorMsg }}</p>

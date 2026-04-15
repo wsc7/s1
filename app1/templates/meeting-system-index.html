@@ -1,143 +1,167 @@
 {% extends "meeting-system-base.html" %}
-
 {% load static %}
 
-{% block title %}首页 - 会议与人员管理系统{% endblock %}
+{% block title %}首页 — 会议与人员管理系统{% endblock %}
 
 {% block extra_css %}
 <style>
-    .hero-section {
-      padding: 4rem 1rem;
-      background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
-      color: #fff;
-      text-align: center;
-    }
-    .hero-section h1 {
-      font-size: 2.2rem;
-      margin-bottom: 1rem;
-    }
-    .hero-section p {
-      max-width: 680px;
-      margin: 0.5rem auto 1.5rem;
-      font-size: 1.05rem;
-    }
-    .card-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background-color: rgba(13, 110, 253, 0.08);
-      color: #0d6efd;
-      margin-bottom: 0.75rem;
-      font-size: 1.4rem;
-    }
-    .feature-card {
-      border: none;
-      border-radius: 0.75rem;
-      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-      height: 100%;
-    }
-    .feature-card .card-body {
-      padding: 1.5rem 1.5rem 1.25rem;
-    }
-    .footer {
-      padding: 1.5rem 0;
-      color: #6c757d;
-      font-size: 0.9rem;
-    }
-    .hero-buttons .btn {
-      margin-right: 10px;
-    }
-    .hero-buttons .btn:last-child {
-      margin-right: 0;
-    }
+  .nx-greeting-bar--compact {
+    margin-bottom: 18px;
+    padding: 20px 22px;
+  }
+
+  .nx-greeting-bar--compact .nx-greeting__title {
+    margin-bottom: 4px;
+  }
+
+  .nx-greeting-bar--compact .nx-greeting__sub {
+    margin-bottom: 10px;
+  }
+
+  .nx-stats {
+    margin-bottom: 18px;
+  }
+
+  .nx-stat {
+    min-height: 0;
+  }
+
+  .nx-stat__label {
+    margin-bottom: 4px;
+  }
+
+  .nx-stat__value {
+    margin-bottom: 8px;
+  }
+
+  .nx-card__body p:last-child,
+  .nx-card__body ul:last-child {
+    margin-bottom: 0;
+  }
+
+  .nx-card__body ul {
+    padding-left: 18px;
+    margin-bottom: 10px;
+  }
+
+  .nx-quick-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-
-  <!-- 顶部介绍区 -->
-  <section class="hero-section">
-    <div class="container">
-      <h1>面向单位的会议与人员管理平台</h1>
-      <p>
-        通过统一的会议管理与人员管理模块，实现会议全生命周期闭环管理与组织人员基础数据的集中维护，
-        为日常办公和决策提供高效、规范的信息化支撑。
-      </p>
-      <p class="small" style="opacity: 0.9;">
-        当前库中：人员 {{ person_count }} 人，会议 {{ meeting_count }} 条
-      </p>
-      <div class="hero-buttons">
-        <a href="/meetings" class="btn btn-primary btn-lg">进入会议管理</a>
-        <a href="/people" class="btn btn-primary btn-lg">进入人员管理</a>
-        <a href="/notifications" class="btn btn-primary btn-lg">通知中心</a>
+<section class="section">
+  <!-- Greeting Bar -->
+  <div class="nx-greeting-bar nx-greeting-bar--compact">
+    <div>
+      <h1 class="nx-greeting__title">首页</h1>
+      <p class="nx-greeting__sub">欢迎回来，{{ user.username|default:"用户" }}</p>
+      <div class="nx-identity-row">
+        <span class="nx-id-chip"><i class="fas fa-shield-alt"></i> 管理员</span>
+        <span class="nx-id-chip"><i class="far fa-clock"></i> 系统在线</span>
+        <span class="nx-id-chip"><i class="far fa-calendar-alt"></i> {{ current_date|default:"运行中" }}</span>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- 功能卡片区 -->
-  <main class="container my-5">
-    <div class="row g-4">
-      <div class="col-md-4">
-        <div class="card feature-card">
-          <div class="card-body">
-            <div class="card-icon">
-              <span class="fw-bold">会</span>
-            </div>
-            <h5 class="card-title">会议生命周期管理</h5>
-            <p class="card-text text-muted">
-              覆盖会前申请与审批、会中签到与过程记录、会后纪要与归档的全流程管理，提升会议组织效率与可追溯性。
-            </p>
-            <a href="/meetings" class="btn btn-sm btn-primary">查看会议模块</a>
+  <!-- ═══ Stat Cards ═══ -->
+  <div class="nx-stats">
+    <div class="nx-stat nx-stat--membership">
+      <div class="nx-stat__icon"><i class="fas fa-users"></i></div>
+      <div class="nx-stat__label">人员总数</div>
+      <div class="nx-stat__value">{{ person_count }}<small> 人</small></div>
+      <div class="nx-stat__meta">
+        <span class="nx-plan-badge">人员库</span>
+        <span>活跃管理中</span>
+      </div>
+    </div>
+
+    <div class="nx-stat nx-stat--traffic">
+      <div class="nx-stat__icon"><i class="fas fa-handshake"></i></div>
+      <div class="nx-stat__label">会议总数</div>
+      <div class="nx-stat__value">{{ meeting_count }}<small> 场</small></div>
+      <div class="nx-stat__meta">
+        <i class="fas fa-chart-line"></i>
+        <span>全生命周期覆盖</span>
+      </div>
+    </div>
+
+    <div class="nx-stat nx-stat--devices">
+      <div class="nx-stat__icon"><i class="fas fa-sitemap"></i></div>
+      <div class="nx-stat__label">组织架构</div>
+      <div class="nx-stat__value">就绪</div>
+      <div class="nx-stat__meta">
+        <i class="fas fa-cog"></i>
+        <span>部门结构维护中</span>
+      </div>
+    </div>
+
+    <div class="nx-stat nx-stat--wallet">
+      <div class="nx-stat__icon"><i class="fas fa-bell"></i></div>
+      <div class="nx-stat__label">通知提醒</div>
+      <div class="nx-stat__value">活跃</div>
+      <div class="nx-stat__meta">
+        <i class="fas fa-envelope"></i>
+        <span>智能会议提醒已开启</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Content Grid ═══ -->
+  <div class="nx-content-grid">
+    <!-- Left Column -->
+    <div>
+      <!-- Announcement -->
+      <div class="nx-card nx-card--announcement">
+        <div class="nx-card__header">
+          <div class="nx-card__icon"><i class="fas fa-bullhorn"></i></div>
+          <h4 class="nx-card__title">系统公告</h4>
+        </div>
+        <div class="nx-card__body">
+          <p>尊敬的用户：</p>
+          <p>您好，欢迎使用<strong>会议与人员管理系统</strong>。本系统为您提供以下核心功能：</p>
+          <ul>
+            <li><strong>会议全流程管理</strong> — 覆盖会前申请审批、会中记录、会后纪要归档的闭环管理。</li>
+            <li><strong>人员与角色管理</strong> — 集中维护人员信息、部门结构与角色认证机制。</li>
+            <li><strong>通知与提醒</strong> — 智能的会议通知分发与定时提醒，确保重要信息及时传达。</li>
+          </ul>
+          <p>系统持续优化中，祝您使用愉快！</p>
+        </div>
+      </div>
+
+      <!-- Vue Mount Point -->
+      <div id="vue-meeting-root"></div>
+    </div>
+
+    <!-- Right Column -->
+    <div>
+      <!-- Quick Navigation -->
+      <div class="nx-card">
+        <div class="nx-card__header">
+          <div class="nx-card__icon nx-card__icon--cyan"><i class="fas fa-bolt"></i></div>
+          <h4 class="nx-card__title">快速导航</h4>
+        </div>
+        <div class="nx-card__body">
+          <div class="nx-quick-links">
+            <a href="/meetings/" class="nx-quick-link">
+              <i class="fas fa-calendar-alt" style="color:var(--nx-primary)"></i> 进入会议管理
+            </a>
+            <a href="/people/" class="nx-quick-link">
+              <i class="fas fa-users" style="color:var(--nx-emerald)"></i> 进入人员管理
+            </a>
+            <a href="/departments/" class="nx-quick-link">
+              <i class="fas fa-sitemap" style="color:var(--nx-cyan)"></i> 进入部门管理
+            </a>
+            <a href="/notifications/" class="nx-quick-link">
+              <i class="fas fa-bell" style="color:var(--nx-amber)"></i> 进入通知中心
+            </a>
           </div>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="card feature-card">
-          <div class="card-body">
-            <div class="card-icon">
-              <span class="fw-bold">人</span>
-            </div>
-            <h5 class="card-title">人员与角色管理</h5>
-            <p class="card-text text-muted">
-              集中维护人员信息、部门结构与角色权限，实现用户—角色—权限的统一管理与访问控制。
-            </p>
-            <a href="/people" class="btn btn-sm btn-primary">查看人员模块</a>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card feature-card">
-          <div class="card-body">
-            <div class="card-icon">
-              <span class="fw-bold">通</span>
-            </div>
-            <h5 class="card-title">通知与提醒</h5>
-            <p class="card-text text-muted">
-              智能的会议通知、邀请回复和定时提醒功能，确保重要会议信息及时传达，提高会议参与率。
-            </p>
-            <a href="/notifications" class="btn btn-sm btn-primary">通知中心</a>
-          </div>
-        </div>
-      </div>
     </div>
-
-    <!-- Vue 挂载点：与 frontend/src/main.js、App.vue 对应 -->
-    <div class="row mt-4">
-      <div class="col-md-12">
-        <div id="vue-meeting-root"></div>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- 页脚 -->
-  <footer class="footer text-center">
-    <div class="container">
-      <p class="mb-0">&copy; 2024 会议与人员管理系统. 保留所有权利.</p>
-    </div>
-  </footer>
+  </div>
+</section>
 {% endblock %}
-

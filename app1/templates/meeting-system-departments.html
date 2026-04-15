@@ -12,23 +12,22 @@
 {% endblock %}
 
 {% block content %}
-  <main class="container my-4">
+  <main class="container my-4 page-shell">
     {% include "flash_messages.html" %}
     {% include "page_header.html" with page_title='部门管理' page_subtitle='维护部门基本信息。' page_header_inner_classes='flex-wrap gap-2' header_actions_template='meeting-system-departments_header_actions.html' header_actions_classes='d-flex gap-2' %}
 
-
-    <div class="card mb-3">
+    <div class="card page-panel mb-3">
       <div class="card-body">
         <div class="form-section-title">查询条件</div>
-        <form method="get" action="" class="row g-3 align-items-end">
+        <form method="get" action="" class="row g-3 align-items-end filter-form">
           <div class="col-md-6">
             <label class="form-label" for="dq">部门名称 / 描述</label>
             <input type="text" name="q" class="form-control" id="dq" placeholder="请输入部门名称或描述" value="{{ request.GET.q|default:'' }}">
           </div>
           <div class="col-md-6">
             <label class="form-label">&nbsp;</label>
-            <div class="clearfix">
-              <button type="submit" class="btn btn-primary" style="margin-right: 8px;">查询</button>
+            <div class="filter-actions">
+              <button type="submit" class="btn btn-primary">查询</button>
               <a href="{% url 'departments' %}" class="btn btn-default">重置</a>
             </div>
           </div>
@@ -36,11 +35,11 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card page-panel">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="page-card-header">
           <span class="form-section-title mb-0">部门列表</span>
-          <small class="text-muted">共 <strong>{{ department_list.paginator.count }}</strong> 个部门。</small>
+          <small class="page-card-meta">共 <strong>{{ department_list.paginator.count }}</strong> 个部门。也可 <a href="/admin/">管理后台</a> 维护。</small>
         </div>
 
         <div class="table-responsive">

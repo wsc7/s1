@@ -16,7 +16,10 @@
       "Bash(awk ':*)",
       "Bash(sed -i 's/class=\"d-inline inline-form-delete\"//g;:*)",
       "Read(//tmp/**)",
-      "Bash(mktemp)"
+      "Bash(mktemp)",
+      "Bash(git:*)",
+      "mcp__playwright__browser_console_messages",
+      "mcp__chrome-devtools__list_pages"
     ]
   }
 }

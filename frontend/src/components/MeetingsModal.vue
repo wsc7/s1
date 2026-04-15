@@ -1,7 +1,6 @@
 <template>
   <div class="vue-toolbar">
     <button type="button" class="btn btn-primary" @click="open">新建会议</button>
-    <a :href="fullPageUrl" class="btn btn-link btn-sm">或使用完整页面</a>
 
     <ModalShell :show="show" title="新建会议" :wide="true" @close="close">
       <p v-if="errorMsg" class="text-danger small">{{ errorMsg }}</p>

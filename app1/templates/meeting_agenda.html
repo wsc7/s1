@@ -5,9 +5,6 @@
 
 {% block extra_css %}
 <style>
-  .detail-nav { margin: 15px 0 20px; }
-  .meeting-meta { margin-bottom: 20px; }
-  .meeting-meta p { margin-bottom: 6px; }
   .agenda-empty { margin-bottom: 0; }
   .agenda-card + .agenda-card { margin-top: 12px; }
   .agenda-card .card-body { padding: 14px 16px; }
@@ -85,9 +82,9 @@
 {% endblock %}
 
 {% block content %}
-{% include "meeting_detail_header.html" with active_tab='agenda' meta_label_3='开始' meta_value_3=meeting.start_time|date:"Y-m-d H:i" meta_label_4='结束' meta_value_4=meeting.end_time|date:"Y-m-d H:i" %}
+{% include "meeting_detail_header.html" with active_tab='agenda' %}
 
-    <div class="row">
+    <div class="row mt-3">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header clearfix">

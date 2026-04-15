@@ -1,4 +1,4 @@
-<div class="container my-4">
+<div class="container my-4 meeting-detail-page">
     {% include "page_header.html" with page_title='会议纪要' page_subtitle=meeting.title back_url=meeting_list_url|default:'/meetings/' back_text='返回会议列表' %}
 
     {% if messages %}
@@ -17,12 +17,12 @@
         <li{% if active_tab == 'agenda' %} class="active"{% endif %}><a href="{% url 'meeting_agenda' meeting.pk %}">会议事项</a></li>
     </ul>
 
-    <div class="card meeting-meta">
+    <div class="card meeting-meta mt-3">
         <div class="card-body">
             <div class="row">
                 <div class="col-md-3"><p><strong>发起人：</strong>{{ meeting.organizer.name|default:"未指定" }}</p></div>
-                <div class="col-md-3"><p><strong>{{ meta_label_3|default:"时间" }}：</strong>{{ meta_value_3 }}</p></div>
-                <div class="col-md-3"><p><strong>{{ meta_label_4 }}：</strong>{{ meta_value_4 }}</p></div>
+                <div class="col-md-3"><p><strong>会议时间：</strong>{{ meeting.start_time|date:"Y-m-d H:i" }}{% if meeting.end_time %} - {{ meeting.end_time|date:"Y-m-d H:i" }}{% endif %}</p></div>
+                <div class="col-md-3"><p><strong>参会人数：</strong>{{ meeting.attendee_count }} 人</p></div>
                 <div class="col-md-3"><p><strong>状态：</strong>{{ meeting.get_status_display }}</p></div>
             </div>
         </div>

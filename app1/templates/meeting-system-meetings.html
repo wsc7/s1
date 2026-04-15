@@ -39,15 +39,14 @@
 {% block content %}
   <script type="application/json" id="meetings-organizers-json">{{ organizers_json|safe }}</script>
 
-  <main class="container my-4">
+  <main class="container my-4 page-shell">
     {% include "flash_messages.html" %}
     {% include "page_header.html" with page_title='会议管理' page_subtitle='支持会议的创建、查询、审批状态查看等操作。' page_header_inner_classes='flex-wrap gap-2' header_actions_template='meeting-system-meetings_header_actions.html' header_actions_classes='d-flex gap-2' %}
 
-
-    <div class="card mb-3">
+    <div class="card page-panel mb-3">
       <div class="card-body">
         <div class="form-section-title">查询条件</div>
-        <form method="get" action="" class="row g-3 align-items-end">
+        <form method="get" action="" class="row g-3 align-items-end filter-form">
           <input type="hidden" name="view" value="{{ view_type }}">
           <div class="col-md-3">
             <label for="keyword" class="form-label">关键词（主题/发起人）</label>
@@ -72,8 +71,8 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">&nbsp;</label>
-            <div class="clearfix">
-              <button type="submit" class="btn btn-primary" style="margin-right: 8px;">查询</button>
+            <div class="filter-actions">
+              <button type="submit" class="btn btn-primary">查询</button>
               <a href="{% url 'meetings' %}?view={{ view_type }}" class="btn btn-default">重置</a>
             </div>
           </div>
@@ -81,19 +80,21 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card page-panel">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="form-section-title mb-0">
-            会议列表
-            <span class="meeting-view-tabs">
-              <a href="?view=all&q={{ request.GET.q|urlencode }}&date={{ request.GET.date|default:'' }}&status={{ request.GET.status|default:'' }}"
-                 class="{% if view_type != 'mine' %}active{% endif %}">所有会议</a>
-              <a href="?view=mine&q={{ request.GET.q|urlencode }}&date={{ request.GET.date|default:'' }}&status={{ request.GET.status|default:'' }}"
-                 class="{% if view_type == 'mine' %}active{% endif %}">我的会议</a>
+        <div class="page-card-header">
+          <div>
+            <span class="form-section-title mb-0">
+              会议列表
+              <span class="meeting-view-tabs">
+                <a href="?view=all&q={{ request.GET.q|urlencode }}&date={{ request.GET.date|default:'' }}&status={{ request.GET.status|default:'' }}"
+                   class="{% if view_type != 'mine' %}active{% endif %}">所有会议</a>
+                <a href="?view=mine&q={{ request.GET.q|urlencode }}&date={{ request.GET.date|default:'' }}&status={{ request.GET.status|default:'' }}"
+                   class="{% if view_type == 'mine' %}active{% endif %}">我的会议</a>
+              </span>
             </span>
-          </span>
-          <small class="text-muted">数据来自数据库；上方可筛选。共 <strong>{{ meeting_list.paginator.count }}</strong> 条。也可 <a href="/admin/">管理后台</a> 维护。</small>
+          </div>
+          <small class="page-card-meta">数据来自数据库；上方可筛选。共 <strong>{{ meeting_list.paginator.count }}</strong> 条。也可 <a href="/admin/">管理后台</a> 维护。</small>
         </div>
 
         <div class="table-responsive">
@@ -123,7 +124,6 @@
                 <td class="text-end">
                   <div class="btn-action-group">
                   {% if view_type == 'mine' %}
-                    {# ===== 「我的会议」操作按钮 ===== #}
                     {% if m.status == 'draft' or m.status == 'rejected' %}
                       <form method="post" action="{% url 'meeting_apply' m.pk %}" onsubmit="return confirm('确定提交申请？');">
                         {% csrf_token %}
@@ -139,7 +139,6 @@
                     {% endif %}
                     <a href="{% url 'meeting_detail' m.pk %}" class="btn btn-xs btn-default">纪要编辑</a>
                   {% else %}
-                    {# ===== 「所有会议」操作按钮 ===== #}
                     {% if m.status == 'pending' %}
                     <span
                       data-meeting-approval

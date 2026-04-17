@@ -12,15 +12,15 @@
 {% endblock %}
 
 {% block content %}
-  <main class="container my-4">
+  <main class="container my-4 page-shell">
     {% include "flash_messages.html" %}
     {% include "page_header.html" with page_title='人员管理' page_subtitle='维护人员基本信息、部门信息及角色权限。' page_header_inner_classes='flex-wrap gap-2' header_actions_template='meeting-system-people_header_actions.html' header_actions_classes='d-flex gap-2' %}
 
 
-    <div class="card mb-3">
+    <div class="card page-panel mb-3">
       <div class="card-body">
         <div class="form-section-title">查询条件</div>
-        <form method="get" action="" class="row g-3 align-items-end">
+        <form method="get" action="" class="row g-3 align-items-end filter-form">
           <div class="col-md-3">
             <label class="form-label" for="pq">姓名 / 工号</label>
             <input type="text" name="q" class="form-control" id="pq" placeholder="请输入姓名或工号" value="{{ request.GET.q|default:'' }}">
@@ -45,8 +45,8 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">&nbsp;</label>
-            <div class="clearfix">
-              <button type="submit" class="btn btn-primary" style="margin-right: 8px;">查询</button>
+            <div class="filter-actions">
+              <button type="submit" class="btn btn-primary">查询</button>
               <a href="{% url 'people' %}" class="btn btn-default">重置</a>
             </div>
           </div>
@@ -54,11 +54,10 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card page-panel">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="page-card-header">
           <span class="form-section-title mb-0">人员列表</span>
-          <small class="text-muted">数据来自数据库；上方可筛选（部门/角色下拉来自已有数据）。共 <strong>{{ person_list.paginator.count }}</strong> 条。也可 <a href="/admin/">管理后台</a>。</small>
         </div>
 
         <div class="table-responsive">
@@ -90,13 +89,15 @@
                 </td>
                 <td>{{ p.phone|default:"—" }}</td>
                 <td class="text-end">
-                  <span data-vue-edit-modal
-                        data-person-id="{{ p.pk }}"
-                        data-api-url="/api/people/"></span>
-                  <form method="post" action="{% url 'person_delete' p.pk %}" class="inline-form-delete" onsubmit="return confirm('确定删除该人员？相关会议中的发起人将变为未指定。');">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-xs btn-danger">删除</button>
-                  </form>
+                  <div class="btn-action-group">
+                    <span data-vue-edit-modal
+                          data-person-id="{{ p.pk }}"
+                          data-api-url="/api/people/"></span>
+                    <form method="post" action="{% url 'person_delete' p.pk %}" class="inline-form-delete" onsubmit="return confirm('确定删除该人员？相关会议中的发起人将变为未指定。');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-xs btn-danger">删除</button>
+                    </form>
+                  </div>
                 </td>
               </tr>
               {% empty %}

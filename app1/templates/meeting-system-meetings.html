@@ -8,21 +8,46 @@
   .badge-status {
     font-size: 0.8rem;
   }
+  .meeting-view-tabs {
+    display: inline-flex;
+    border: 1px solid #d0d5dd;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-left: 12px;
+    vertical-align: middle;
+  }
+  .meeting-view-tabs a {
+    padding: 3px 14px;
+    font-size: 0.82rem;
+    color: #344054;
+    text-decoration: none;
+    background: #fff;
+    border-right: 1px solid #d0d5dd;
+    line-height: 1.8;
+    transition: background 0.15s;
+  }
+  .meeting-view-tabs a:last-child { border-right: none; }
+  .meeting-view-tabs a.active {
+    background: #f0f4ff;
+    color: #2c5fe6;
+    font-weight: 600;
+  }
+  .meeting-view-tabs a:hover:not(.active) { background: #f5f6fa; }
 </style>
 {% endblock %}
 
 {% block content %}
   <script type="application/json" id="meetings-organizers-json">{{ organizers_json|safe }}</script>
 
-  <main class="container my-4">
+  <main class="container my-4 page-shell">
     {% include "flash_messages.html" %}
     {% include "page_header.html" with page_title='会议管理' page_subtitle='支持会议的创建、查询、审批状态查看等操作。' page_header_inner_classes='flex-wrap gap-2' header_actions_template='meeting-system-meetings_header_actions.html' header_actions_classes='d-flex gap-2' %}
 
-
-    <div class="card mb-3">
+    <div class="card page-panel mb-3">
       <div class="card-body">
         <div class="form-section-title">查询条件</div>
-        <form method="get" action="" class="row g-3 align-items-end">
+        <form method="get" action="" class="row g-3 align-items-end filter-form">
+          <input type="hidden" name="view" value="{{ view_type }}">
           <div class="col-md-3">
             <label for="keyword" class="form-label">关键词（主题/发起人）</label>
             <input type="text" name="q" class="form-control" id="keyword" placeholder="请输入关键词" value="{{ request.GET.q|default:'' }}">
@@ -35,6 +60,7 @@
             <label for="status" class="form-label">会议状态</label>
             <select name="status" class="form-control" id="status">
               <option value="">全部</option>
+              <option value="draft" {% if request.GET.status == 'draft' %}selected{% endif %}>草稿</option>
               <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>待审批</option>
               <option value="approved_pending" {% if request.GET.status == 'approved_pending' %}selected{% endif %}>审批通过未开始</option>
               <option value="in_progress" {% if request.GET.status == 'in_progress' %}selected{% endif %}>进行中</option>
@@ -45,20 +71,29 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">&nbsp;</label>
-            <div class="clearfix">
-              <button type="submit" class="btn btn-primary" style="margin-right: 8px;">查询</button>
-              <a href="{% url 'meetings' %}" class="btn btn-default">重置</a>
+            <div class="filter-actions">
+              <button type="submit" class="btn btn-primary">查询</button>
+              <a href="{% url 'meetings' %}?view={{ view_type }}" class="btn btn-default">重置</a>
             </div>
           </div>
         </form>
       </div>
     </div>
 
-    <div class="card">
+    <div class="card page-panel">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="form-section-title mb-0">会议列表</span>
-          <small class="text-muted">数据来自数据库；上方可筛选。共 <strong>{{ meeting_list.paginator.count }}</strong> 条。也可 <a href="/admin/">管理后台</a> 维护。</small>
+        <div class="page-card-header">
+          <div>
+            <span class="form-section-title mb-0">
+              会议列表
+              <span class="meeting-view-tabs">
+                <a href="?view=all&q={{ request.GET.q|urlencode }}&date={{ request.GET.date|default:'' }}&status={{ request.GET.status|default:'' }}"
+                   class="{% if view_type != 'mine' %}active{% endif %}">所有会议</a>
+                <a href="?view=mine&q={{ request.GET.q|urlencode }}&date={{ request.GET.date|default:'' }}&status={{ request.GET.status|default:'' }}"
+                   class="{% if view_type == 'mine' %}active{% endif %}">我的会议</a>
+              </span>
+            </span>
+          </div>
         </div>
 
         <div class="table-responsive">
@@ -86,26 +121,51 @@
                   <span class="badge badge-{{ m.status_badge_class }} badge-status">{{ m.get_status_display }}</span>
                 </td>
                 <td class="text-end">
-                  {% if m.status == 'pending' %}
-                  <span
-                    data-meeting-approval
-                    data-api-url="{% url 'api_meeting_approve' m.pk %}"
-                    data-meeting-title="{{ m.title|escape }}"
-                    data-status-label="{{ m.get_status_display }}"
-                  ></span>
+                  <div class="btn-action-group">
+                  {% if view_type == 'mine' %}
+                    {% if m.status == 'draft' or m.status == 'rejected' %}
+                      <form method="post" action="{% url 'meeting_apply' m.pk %}" onsubmit="return confirm('确定提交申请？');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-xs btn-primary">申请</button>
+                      </form>
+                      <form method="post" action="{% url 'meeting_delete' m.pk %}" onsubmit="return confirm('确定删除该会议？');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-xs btn-danger">删除</button>
+                      </form>
+                    {% else %}
+                      <button type="button" class="btn btn-xs btn-default" disabled title="仅草稿或未通过状态可申请">申请</button>
+                      <button type="button" class="btn btn-xs btn-danger" disabled title="仅草稿或未通过状态可删除">删除</button>
+                    {% endif %}
+                    <a href="{% url 'meeting_detail' m.pk %}" class="btn btn-xs btn-default">纪要编辑</a>
                   {% else %}
-                  <button type="button" class="btn btn-xs btn-default" disabled>审批</button>
+                    {% if m.status == 'pending' %}
+                    <span
+                      data-meeting-approval
+                      data-api-url="{% url 'api_meeting_approve' m.pk %}"
+                      data-meeting-title="{{ m.title|escape }}"
+                      data-status-label="{{ m.get_status_display }}"
+                    ></span>
+                    {% else %}
+                    <button type="button" class="btn btn-xs btn-default" disabled>审批</button>
+                    {% endif %}
+                    <a href="{% url 'meeting_detail' m.pk %}" class="btn btn-xs btn-default">编辑纪要</a>
+                    <form method="post" action="{% url 'meeting_delete' m.pk %}" onsubmit="return confirm('确定删除该会议？');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-xs btn-danger">删除</button>
+                    </form>
                   {% endif %}
-                  <a href="{% url 'meeting_detail' m.pk %}" class="btn btn-xs btn-default">编辑纪要</a>
-                  <form method="post" action="{% url 'meeting_delete' m.pk %}" class="inline-form-delete" onsubmit="return confirm('确定删除该会议？');">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-xs btn-danger">删除</button>
-                  </form>
+                  </div>
                 </td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="7" class="text-center text-muted">暂无会议记录，请点击上方「新建会议」或到 <a href="/admin/">管理后台</a> 添加。</td>
+                <td colspan="7" class="text-center text-muted">
+                  {% if view_type == 'mine' %}
+                    暂无您发起的会议，请点击上方「新建会议」创建。
+                  {% else %}
+                    暂无会议记录，请点击上方「新建会议」或到 <a href="/admin/">管理后台</a> 添加。
+                  {% endif %}
+                </td>
               </tr>
               {% endfor %}
             </tbody>

@@ -3,22 +3,14 @@
 
 {% block title %}会议纪要 - {{ meeting.title }} - 参与人信息{% endblock %}
 
-{% block extra_css %}
-<style>
-  .detail-nav { margin: 15px 0 20px; }
-  .meeting-meta { margin-bottom: 20px; }
-  .meeting-meta p { margin-bottom: 6px; }
-</style>
-{% endblock %}
-
 {% block content %}
-{% include "meeting_detail_header.html" with active_tab='attendees' meta_label_3='时间' meta_value_3=meeting.start_time|date:"Y-m-d H:i" meta_label_4='人数' meta_value_4=meeting.attendee_count|add:'0'|stringformat:'s'|add:' 人' %}
+{% include "meeting_detail_header.html" with active_tab='attendees' %}
 
-    <div class="row">
+    <div class="row detail-grid mt-3">
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">添加参与人</h5>
+                    <h5 class="detail-card-title">添加参与人</h5>
                 </div>
                 <div class="card-body">
                     <form method="post">
@@ -26,21 +18,21 @@
 
                         <div class="form-group">
                             <label class="form-section-title">选择参与人</label>
-                            <div class="input-group" style="margin-bottom: 15px;">
+                            <div class="input-group mb-3">
                                 <input type="text" id="attendee-search" class="form-control" placeholder="搜索姓名或部门...">
                                 <span class="input-group-btn">
                                     <button class="btn btn-default" type="button" id="clear-search">清空</button>
                                 </span>
                             </div>
 
-                            <div style="margin-bottom: 10px;">
+                            <div class="selection-toolbar">
                                 <button type="button" class="btn btn-xs btn-default" id="select-all">全选</button>
                                 <button type="button" class="btn btn-xs btn-default" id="deselect-all">全不选</button>
                                 <button type="button" class="btn btn-xs btn-default" id="select-visible">选择可见</button>
                                 <button type="button" class="btn btn-xs btn-default" id="deselect-visible">取消可见</button>
                             </div>
 
-                            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 10px;">
+                            <div class="selection-list">
                                 {% for person in attendees_form.attendees %}
                                 <div class="checkbox attendee-item">
                                     <label>
@@ -51,7 +43,7 @@
                                 {% endfor %}
                             </div>
 
-                            <div class="text-muted small" style="margin-top: 8px;">
+                            <div class="selection-summary">
                                 已选中: <span id="selected-count">0</span> / <span id="total-count">{{ attendees_form.attendees.field.queryset.count }}</span> 人
                             </div>
                         </div>
@@ -72,15 +64,15 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">当前参与人 ({{ current_attendees.paginator.count }})</h5>
-                        <div class="d-flex align-items-center">
-                            <div class="btn-group btn-group-xs" role="group" style="margin-right: 10px; display: none;" id="batch-actions">
+                    <div class="detail-toolbar">
+                        <h5 class="detail-card-title">当前参与人 ({{ current_attendees.paginator.count }})</h5>
+                        <div class="detail-toolbar__actions">
+                            <div class="btn-group btn-group-xs" role="group" style="display: none;" id="batch-actions">
                                 <button type="button" class="btn btn-default" id="batch-mark-required">设为必须参加</button>
                                 <button type="button" class="btn btn-default" id="batch-mark-optional">设为可选</button>
                                 <button type="button" class="btn btn-danger" id="batch-remove">批量移除</button>
                             </div>
-                            <div class="dropdown" style="display: inline-block;">
+                            <div class="dropdown">
                                 <button class="btn btn-xs btn-default dropdown-toggle" type="button" id="filterDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                                     筛选 <span class="caret"></span>
                                 </button>
@@ -115,7 +107,7 @@
                                         <th>部门</th>
                                         <th>状态</th>
                                         <th>类型</th>
-                                        <th>操作</th>
+                                        <th class="text-end">操作</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -143,7 +135,7 @@
                                             <span class="badge badge-default">可选</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td class="text-end">
                                             <form method="post" action="{% url 'remove_attendee' meeting.id attendee.id %}" class="inline-form-delete" onsubmit="return confirm('确定要移除此参与人吗？');">
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn btn-sm btn-danger">移除</button>
@@ -155,46 +147,7 @@
                             </table>
                         </div>
 
-                        {% if page_obj.paginator.num_pages > 1 %}
-                        <nav aria-label="参与人分页" class="text-center">
-                            <ul class="pagination pagination-sm">
-                                {% if page_obj.has_previous %}
-                                <li>
-                                    <a href="?page={{ page_obj.previous_page_number }}" aria-label="上一页">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </a>
-                                </li>
-                                {% else %}
-                                <li class="disabled">
-                                    <span aria-hidden="true">&laquo;</span>
-                                </li>
-                                {% endif %}
-
-                                {% for num in page_obj.paginator.page_range %}
-                                    {% if page_obj.number == num %}
-                                    <li class="active"><span>{{ num }}</span></li>
-                                    {% else %}
-                                    <li><a href="?page={{ num }}">{{ num }}</a></li>
-                                    {% endif %}
-                                {% endfor %}
-
-                                {% if page_obj.has_next %}
-                                <li>
-                                    <a href="?page={{ page_obj.next_page_number }}" aria-label="下一页">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </a>
-                                </li>
-                                {% else %}
-                                <li class="disabled">
-                                    <span aria-hidden="true">&raquo;</span>
-                                </li>
-                                {% endif %}
-                            </ul>
-                            <div class="text-muted small">
-                                显示第 {{ page_obj.start_index }} - {{ page_obj.end_index }} 条，共 {{ page_obj.paginator.count }} 条记录
-                            </div>
-                        </nav>
-                        {% endif %}
+                        {% include "pagination.html" with page_obj=page_obj %}
 
                     </form>
                     {% else %}

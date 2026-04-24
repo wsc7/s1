@@ -7,12 +7,13 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 
 from app1 import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/v1/', include('app1.api_urls')),
     path('', views.home, name='home'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
@@ -31,7 +32,6 @@ urlpatterns = [
     path('people/add/', views.person_create, name='person_create'),
     path('people/<int:pk>/edit/', views.person_edit, name='person_edit'),
     path('people/<int:pk>/delete/', views.person_delete, name='person_delete'),
-    # 部门管理
     path('departments/', views.departments, name='departments'),
     path('departments/add/', views.department_create, name='department_create'),
     path('departments/<int:pk>/edit/', views.department_edit, name='department_edit'),
@@ -49,12 +49,10 @@ urlpatterns = [
     path('api/departments/<int:pk>/', views.api_department_detail, name='api_department_detail'),
     path('api/departments/<int:pk>/update/', views.api_department_update, name='api_department_update'),
     path('api/departments/<int:pk>/delete/', views.api_department_delete, name='api_department_delete'),
-    # 会议参与人管理
     path('meetings/<int:meeting_id>/attendees/', views.meeting_attendees, name='meeting_attendees'),
     path('meetings/<int:meeting_id>/attendees/<int:attendee_id>/remove/', views.remove_attendee, name='remove_attendee'),
     path('meetings/<int:meeting_id>/attachments/<int:attachment_id>/remove/', views.remove_attachment, name='remove_attachment'),
     path('meetings/<int:meeting_id>/respond/', views.respond_to_meeting, name='respond_to_meeting'),
-    # 通知与提醒
     path('notifications/', views.notifications, name='notifications'),
     path('reminder-settings/', views.reminder_settings, name='reminder_settings'),
     path('profile/', views.profile_view, name='profile'),

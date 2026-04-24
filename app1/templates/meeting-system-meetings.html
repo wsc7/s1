@@ -33,13 +33,112 @@
     font-weight: 600;
   }
   .meeting-view-tabs a:hover:not(.active) { background: #f5f6fa; }
+  .meetings-page-shell {
+    position: relative;
+    width: 100%;
+    max-width: 1320px;
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding-right: 20px;
+  }
+  .meeting-stats-panel {
+    position: fixed;
+    top: 220px;
+    right: 80px;
+    width: 320px;
+  }
+  .meeting-stats-section + .meeting-stats-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eef2f6;
+  }
+  .meeting-stats-total {
+    color: #2f6fed;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .meeting-stats-total-label {
+    margin-top: 8px;
+    color: #667085;
+    font-size: 13px;
+  }
+  .meeting-stats-section-title {
+    margin-bottom: 12px;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .meeting-stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .meeting-stats-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #344054;
+  }
+  .meeting-stats-item strong {
+    color: #101828;
+    font-size: 18px;
+  }
+  .meeting-list-table {
+    width: 100%;
+    table-layout: fixed;
+  }
+  .meeting-list-table .meeting-col-title,
+  .meeting-list-table .meeting-col-location {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .meeting-list-table .meeting-col-count {
+    text-align: center;
+  }
+  .meeting-list-table .meeting-col-status,
+  .meeting-list-table .meeting-col-time,
+  .meeting-list-table .meeting-col-organizer,
+  .meeting-list-table .meeting-col-count {
+    white-space: nowrap;
+  }
+  .meeting-list-table .meeting-col-actions {
+    white-space: nowrap;
+  }
+  @media (max-width: 1399px) {
+    .meeting-list-table {
+      min-width: 1080px;
+      table-layout: auto;
+    }
+    .meeting-list-table .meeting-col-title,
+    .meeting-list-table .meeting-col-location {
+      white-space: normal;
+    }
+  }
+  @media (max-width: 1999px) {
+    .meetings-page-shell {
+      width: auto;
+      max-width: none;
+      padding-right: 0;
+    }
+    .meeting-stats-panel {
+      position: static;
+      width: auto;
+      margin-top: 16px;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
   <script type="application/json" id="meetings-organizers-json">{{ organizers_json|safe }}</script>
 
-  <main class="container my-4 page-shell">
+  <main class="container my-4 page-shell meetings-page-shell">
     {% include "flash_messages.html" %}
     {% include "page_header.html" with page_title='会议管理' page_subtitle='支持会议的创建、查询、审批状态查看等操作。' page_header_inner_classes='flex-wrap gap-2' header_actions_template='meeting-system-meetings_header_actions.html' header_actions_classes='d-flex gap-2' %}
 
@@ -97,27 +196,36 @@
         </div>
 
         <div class="table-responsive">
-          <table class="table align-middle mb-0">
+          <table class="table align-middle mb-0 meeting-list-table">
+            <colgroup>
+              <col style="width: 17%;">
+              <col style="width: 15%;">
+              <col style="width: 12%;">
+              <col style="width: 10%;">
+              <col style="width: 8%;">
+              <col style="width: 11%;">
+              <col style="width: 27%;">
+            </colgroup>
             <thead>
               <tr>
-                <th scope="col">会议主题</th>
-                <th scope="col">会议时间</th>
-                <th scope="col">地点</th>
-                <th scope="col">发起人</th>
-                <th scope="col">参会人数</th>
-                <th scope="col">状态</th>
-                <th scope="col" class="text-end">操作</th>
+                <th scope="col" class="meeting-col-title">会议主题</th>
+                <th scope="col" class="meeting-col-time">会议时间</th>
+                <th scope="col" class="meeting-col-location">地点</th>
+                <th scope="col" class="meeting-col-organizer">发起人</th>
+                <th scope="col" class="meeting-col-count">参会人数</th>
+                <th scope="col" class="meeting-col-status">状态</th>
+                <th scope="col" class="text-end meeting-col-actions">操作</th>
               </tr>
             </thead>
             <tbody>
               {% for m in meeting_list %}
               <tr>
-                <td>{{ m.title }}</td>
-                <td>{{ m.start_time|date:"Y-m-d H:i" }}</td>
-                <td>{{ m.location|default:"—" }}</td>
-                <td>{{ m.organizer.name|default:"—" }}</td>
-                <td>{{ m.attendee_count }}</td>
-                <td>
+                <td class="meeting-col-title">{{ m.title }}</td>
+                <td class="meeting-col-time">{{ m.start_time|date:"Y-m-d H:i" }}</td>
+                <td class="meeting-col-location">{{ m.location|default:"—" }}</td>
+                <td class="meeting-col-organizer">{{ m.organizer.name|default:"—" }}</td>
+                <td class="meeting-col-count">{{ m.attendee_count }}</td>
+                <td class="meeting-col-status">
                   <span class="badge badge-{{ m.status_badge_class }} badge-status">{{ m.get_status_display }}</span>
                 </td>
                 <td class="text-end">
@@ -128,15 +236,16 @@
                         {% csrf_token %}
                         <button type="submit" class="btn btn-xs btn-primary">申请</button>
                       </form>
+                      <a href="{% url 'meeting_detail' m.pk %}" class="btn btn-xs btn-default">纪要编辑</a>
                       <form method="post" action="{% url 'meeting_delete' m.pk %}" onsubmit="return confirm('确定删除该会议？');">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-xs btn-danger">删除</button>
                       </form>
                     {% else %}
                       <button type="button" class="btn btn-xs btn-default" disabled title="仅草稿或未通过状态可申请">申请</button>
+                      <a href="{% url 'meeting_detail' m.pk %}" class="btn btn-xs btn-default">纪要编辑</a>
                       <button type="button" class="btn btn-xs btn-danger" disabled title="仅草稿或未通过状态可删除">删除</button>
                     {% endif %}
-                    <a href="{% url 'meeting_detail' m.pk %}" class="btn btn-xs btn-default">纪要编辑</a>
                   {% else %}
                     {% if m.status == 'pending' %}
                     <span
@@ -175,6 +284,102 @@
         {% include "pagination.html" with page_obj=meeting_list %}
       </div>
     </div>
+
+    <div class="card page-panel meeting-stats-panel">
+        <div class="card-body">
+          <div class="page-card-header">
+            <span class="form-section-title mb-0">会议统计</span>
+          </div>
+
+          {% if view_type == 'mine' %}
+          <div class="meeting-stats-section">
+            <div class="meeting-stats-total">{{ meeting_stats.mine_total }}</div>
+            <div class="meeting-stats-total-label">我的会议</div>
+          </div>
+
+          <div class="meeting-stats-section">
+            <div class="meeting-stats-section-title">我的会议</div>
+            <div class="meeting-stats-list">
+              <div class="meeting-stats-item">
+                <span>已申请</span>
+                <strong>{{ meeting_stats.mine_applied }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>草稿</span>
+                <strong>{{ meeting_stats.mine_draft }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-stats-section">
+            <div class="meeting-stats-section-title">已申请会议</div>
+            <div class="meeting-stats-list">
+              <div class="meeting-stats-item">
+                <span>待审批</span>
+                <strong>{{ meeting_stats.applied_pending }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>审批未通过</span>
+                <strong>{{ meeting_stats.applied_unapproved }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>审批通过</span>
+                <strong>{{ meeting_stats.applied_approved }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>过期</span>
+                <strong>{{ meeting_stats.applied_expired }}</strong>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="meeting-stats-section">
+            <div class="meeting-stats-total">{{ meeting_stats.total }}</div>
+            <div class="meeting-stats-total-label">会议总数</div>
+          </div>
+
+          <div class="meeting-stats-section">
+            <div class="meeting-stats-section-title">审批状态</div>
+            <div class="meeting-stats-list">
+              <div class="meeting-stats-item">
+                <span>待审批</span>
+                <strong>{{ meeting_stats.pending }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>审批未通过</span>
+                <strong>{{ meeting_stats.unapproved }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>审批通过</span>
+                <strong>{{ meeting_stats.approved }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>过期</span>
+                <strong>{{ meeting_stats.expired }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-stats-section">
+            <div class="meeting-stats-section-title">已通过会议</div>
+            <div class="meeting-stats-list">
+              <div class="meeting-stats-item">
+                <span>未开始</span>
+                <strong>{{ meeting_stats.approved_pending }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>开始</span>
+                <strong>{{ meeting_stats.in_progress }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>结束</span>
+                <strong>{{ meeting_stats.done }}</strong>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
   </main>
 {% endblock %}
 

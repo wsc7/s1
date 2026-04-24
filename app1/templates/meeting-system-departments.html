@@ -5,14 +5,53 @@
 
 {% block extra_css %}
 <style>
-  .badge-role {
-    font-size: 0.8rem;
+  .departments-page-shell {
+    position: relative;
+    width: 100%;
+    max-width: 1320px;
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding-right: 20px;
+  }
+  .department-stats-panel {
+    position: fixed;
+    top: 220px;
+    right: 80px;
+    width: 320px;
+  }
+  .department-stats-section + .department-stats-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eef2f6;
+  }
+  .department-stats-total {
+    color: #2f6fed;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .department-stats-total-label {
+    margin-top: 8px;
+    color: #667085;
+    font-size: 13px;
+  }
+  @media (max-width: 1999px) {
+    .departments-page-shell {
+      width: auto;
+      max-width: none;
+      padding-right: 0;
+    }
+    .department-stats-panel {
+      position: static;
+      width: auto;
+      margin-top: 16px;
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-  <main class="container my-4 page-shell">
+  <main class="container my-4 page-shell departments-page-shell">
     {% include "flash_messages.html" %}
     {% include "page_header.html" with page_title='部门管理' page_subtitle='维护部门基本信息。' page_header_inner_classes='flex-wrap gap-2' header_actions_template='meeting-system-departments_header_actions.html' header_actions_classes='d-flex gap-2' %}
 
@@ -78,6 +117,18 @@
           </table>
         </div>
         {% include "pagination.html" with page_obj=department_list %}
+      </div>
+    </div>
+
+    <div class="card page-panel department-stats-panel">
+      <div class="card-body">
+        <div class="page-card-header">
+          <span class="form-section-title mb-0">部门统计</span>
+        </div>
+        <div class="department-stats-section">
+          <div class="department-stats-total">{{ department_stats.total }}</div>
+          <div class="department-stats-total-label">部门总数</div>
+        </div>
       </div>
     </div>
   </main>

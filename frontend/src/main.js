@@ -1,4 +1,6 @@
-import App from './App.vue'
-import { mountById } from './modal-utils.js'
+import { createApp } from 'vue'
 
-mountById('vue-meeting-root', App, () => ({}))
+import App from './App.vue'
+import router from './router'
+
+createApp(App).use(router).mount('#app')

@@ -8,14 +8,80 @@
   .badge-role {
     font-size: 0.8rem;
   }
+  .people-page-shell {
+    position: relative;
+    width: 100%;
+    max-width: 1320px;
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding-right: 20px;
+  }
+  .people-stats-panel {
+    position: fixed;
+    top: 220px;
+    right: 80px;
+    width: 320px;
+  }
+  .people-stats-section + .people-stats-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eef2f6;
+  }
+  .people-stats-total {
+    color: #2f6fed;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .people-stats-total-label {
+    margin-top: 8px;
+    color: #667085;
+    font-size: 13px;
+  }
+  .people-stats-section-title {
+    margin-bottom: 12px;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .people-stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .people-stats-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #344054;
+  }
+  .people-stats-item strong {
+    color: #101828;
+    font-size: 18px;
+  }
+  @media (max-width: 1999px) {
+    .people-page-shell {
+      width: auto;
+      max-width: none;
+      padding-right: 0;
+    }
+    .people-stats-panel {
+      position: static;
+      width: auto;
+      margin-top: 16px;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-  <main class="container my-4 page-shell">
+  <main class="container my-4 page-shell people-page-shell">
     {% include "flash_messages.html" %}
     {% include "page_header.html" with page_title='人员管理' page_subtitle='维护人员基本信息、部门信息及角色权限。' page_header_inner_classes='flex-wrap gap-2' header_actions_template='meeting-system-people_header_actions.html' header_actions_classes='d-flex gap-2' %}
-
 
     <div class="card page-panel mb-3">
       <div class="card-body">
@@ -110,6 +176,35 @@
         </div>
 
         {% include "pagination.html" with page_obj=person_list %}
+      </div>
+    </div>
+
+    <div class="card page-panel people-stats-panel">
+      <div class="card-body">
+        <div class="page-card-header">
+          <span class="form-section-title mb-0">人员统计</span>
+        </div>
+
+        <div class="people-stats-section">
+          <div class="people-stats-total">{{ people_stats.total }}</div>
+          <div class="people-stats-total-label">人员总数</div>
+        </div>
+
+        <div class="people-stats-section">
+          <div class="people-stats-section-title">部门人数</div>
+          <div class="people-stats-list">
+            {% for item in people_department_stats %}
+            <div class="people-stats-item">
+              <span>{{ item.department__name }}</span>
+              <strong>{{ item.count }}</strong>
+            </div>
+            {% endfor %}
+            <div class="people-stats-item">
+              <span>未分配人员</span>
+              <strong>{{ people_unassigned_count }}</strong>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </main>

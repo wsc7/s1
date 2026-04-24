@@ -5,17 +5,14 @@
 
 {% block extra_css %}
 <style>
-  .detail-nav { margin: 15px 0 20px; }
-  .meeting-meta { margin-bottom: 20px; }
-  .meeting-meta p { margin-bottom: 6px; }
   .attachment-table td { vertical-align: middle; }
 </style>
 {% endblock %}
 
 {% block content %}
-{% include "meeting_detail_header.html" with active_tab='attachments' meta_label_3='时间' meta_value_3=meeting.start_time|date:"Y-m-d H:i" meta_label_4='附件' meta_value_4=attachments|length|stringformat:'s'|add:' 个' %}
+{% include "meeting_detail_header.html" with active_tab='attachments' %}
 
-    <div class="row">
+    <div class="row mt-3">
         <div class="col-md-4">
             <div class="card">
                 <div class="card-header">

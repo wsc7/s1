@@ -1,105 +1,532 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
   <title>{% block title %}会议与人员管理系统{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+
+  <!-- FontAwesome 5 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
   <!-- Bootstrap 3 CSS -->
   <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-  <link rel="stylesheet" href="{% static 'vue/chunk-style.css' %}">
+
+  <!-- Neo Theme CSS -->
+  <link rel="stylesheet" href="{% static 'css/wow-theme.css' %}?v=4">
+  <link rel="stylesheet" href="{% static 'vue/chunk-style.css' %}?v=4">
+
   <style>
     body {
-      background-color: #f5f6fa;
+      font-size: 13px;
+      line-height: 1.5;
     }
-    .page-header {
-      padding: 1.5rem 0 1rem;
+
+    .section {
+      padding-top: 18px;
+      padding-bottom: 20px;
     }
+
+    .container.my-4,
+    .container.my-5 {
+      margin-top: 18px;
+      margin-bottom: 18px;
+    }
+
+    .main-content.nx-dashboard {
+      padding-right: 20px;
+      padding-bottom: 28px;
+    }
+
     .card {
-      border-radius: 0.75rem;
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
-      border: none;
+      border-radius: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
     }
-    .table thead th {
-      background-color: #f1f3f5;
-      font-weight: 600;
+
+    .card-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid #eef2f6;
+      background: #fff;
     }
-    .table tbody tr:hover {
-      background-color: #f8f9fa;
+
+    .card-header h4,
+    .card-header h5,
+    .card-header h6 {
+      margin: 0;
+      color: #101828;
+      font-weight: 700;
+      line-height: 1.4;
     }
+
+    .card-body {
+      padding: 18px 20px;
+    }
+
     .form-section-title {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: #6c757d;
+      margin-bottom: 14px;
+      color: #667085;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.25rem;
     }
-    .inline-form-delete {
+
+    .page-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .page-header {
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .page-header__inner {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 2px;
+    }
+
+    .page-header__copy {
+      min-width: 0;
+    }
+
+    .page-header__title {
+      margin: 0;
+      color: #101828;
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .page-header__subtitle {
+      display: block;
+      margin-top: 6px;
+      color: #667085;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .meeting-detail-page .page-header {
+      margin-bottom: 18px;
+    }
+
+    .detail-nav {
+      margin: 0 0 36px;
+      border-bottom: 1px solid #e4e7ec;
+    }
+
+    .detail-nav > li > a {
+      margin-right: 0;
+      padding: 10px 16px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      color: #667085;
+      font-weight: 600;
+    }
+
+    .detail-nav > li > a:hover,
+    .detail-nav > li > a:focus {
+      background: transparent;
+      color: #2f6fed;
+    }
+
+    .detail-nav > li.active > a,
+    .detail-nav > li.active > a:hover,
+    .detail-nav > li.active > a:focus {
+      border: 0;
+      border-bottom: 2px solid #2f6fed;
+      background: transparent;
+      color: #2f6fed;
+    }
+
+    .meeting-meta {
+      margin-bottom: 24px;
+    }
+
+    .meeting-meta .row {
+      row-gap: 10px;
+    }
+
+    .meeting-meta p {
+      margin-bottom: 0;
+      color: #344054;
+      line-height: 1.7;
+    }
+
+    .page-header__actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .page-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .page-card-meta {
+      margin: 0;
+      color: #667085;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .filter-form .form-group,
+    .filter-form [class*="col-"] {
+      margin-bottom: 0;
+    }
+
+    .form-label {
       display: inline-block;
-      margin-left: 4px;
+      margin-bottom: 6px;
+      color: #344054;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .filter-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      min-height: 34px;
+    }
+
+    .detail-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .detail-nav {
+      margin: 0;
+      border-bottom: 1px solid #e4e7ec;
+    }
+
+    .detail-nav > li > a {
+      margin-right: 0;
+      padding: 10px 16px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      color: #667085;
+      font-weight: 600;
+    }
+
+    .detail-nav > li > a:hover,
+    .detail-nav > li > a:focus {
+      background: transparent;
+      color: #2f6fed;
+    }
+
+    .detail-nav > li.active > a,
+    .detail-nav > li.active > a:hover,
+    .detail-nav > li.active > a:focus {
+      border: 0;
+      border-bottom: 2px solid #2f6fed;
+      background: transparent;
+      color: #2f6fed;
+    }
+
+    .meeting-meta {
+      margin-bottom: 0;
+    }
+
+    .meeting-meta p {
+      margin-bottom: 6px;
+      color: #344054;
+    }
+
+    .meeting-meta p:last-child {
+      margin-bottom: 0;
+    }
+
+    .detail-grid {
+      display: flex;
+      flex-wrap: wrap;
+      margin-left: -8px;
+      margin-right: -8px;
+      row-gap: 16px;
+    }
+
+    .detail-grid > [class*="col-"] {
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+
+    .detail-card-title {
+      margin: 0;
+      color: #101828;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .detail-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .detail-toolbar__actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .selection-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .selection-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #d0d5dd;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .selection-summary {
+      margin-top: 8px;
+      color: #667085;
+      font-size: 12px;
+    }
+
+    .table {
+      margin-bottom: 0;
+    }
+
+    .table > thead > tr > th {
+      border-bottom: 1px solid #e4e7ec;
+      color: #667085;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 10px 12px;
+      vertical-align: middle;
+      background: #f8fafc;
+    }
+
+    .table > tbody > tr > td {
+      padding: 10px 12px;
+      vertical-align: middle;
+      border-top: 1px solid #eef2f6;
+      color: #101828;
+    }
+
+    .table-responsive {
+      border: 0;
+      margin-bottom: 0;
+    }
+
+    .table tbody tr:hover {
+      background: rgba(47, 111, 237, 0.03);
+    }
+
+    .btn-action-group {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .inline-form-delete {
+      display: inline-flex;
+      margin: 0;
+    }
+
+    .alert {
+      margin-bottom: 0;
+      border-radius: 10px;
+    }
+
+    .alert-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .pagination-shell {
+      margin-top: 16px;
+    }
+
+    .pagination-shell .pagination {
+      margin: 0;
+    }
+
+    .pagination-summary {
+      margin-top: 8px;
+      color: #667085;
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+    }
+
+    .text-end,
+    .text-right {
+      text-align: right;
+    }
+
+    .align-middle {
       vertical-align: middle;
     }
-    .badge {
-      font-size: 0.8rem;
+
+    .fw-bold {
+      font-weight: 700;
     }
-    .navbar-brand span {
-      font-weight: 600;
+
+    .d-flex {
+      display: flex;
+    }
+
+    .flex-wrap {
+      flex-wrap: wrap;
+    }
+
+    .justify-content-between {
+      justify-content: space-between;
+    }
+
+    .align-items-center {
+      align-items: center;
+    }
+
+    .align-items-end {
+      align-items: flex-end;
+    }
+
+    .gap-2 {
+      gap: 8px;
+    }
+
+    .g-3 {
+      row-gap: 12px;
+    }
+
+    .g-4 {
+      row-gap: 16px;
+    }
+
+    .mb-0 {
+      margin-bottom: 0;
+    }
+
+    .mb-2 {
+      margin-bottom: 8px;
+    }
+
+    .mb-3 {
+      margin-bottom: 16px;
+    }
+
+    .mt-3 {
+      margin-top: 16px;
+    }
+
+    .mt-4 {
+      margin-top: 18px;
+    }
+
+    .my-4 {
+      margin-top: 18px;
+      margin-bottom: 18px;
+    }
+
+    .my-5 {
+      margin-top: 22px;
+      margin-bottom: 22px;
+    }
+
+    @media (max-width: 991px) {
+      .main-content.nx-dashboard {
+        padding-right: 15px;
+      }
+
+      .page-header__inner,
+      .page-card-header,
+      .detail-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .page-header__actions {
+        justify-content: flex-start;
+      }
+
+      .text-end,
+      .text-right,
+      .pagination-summary {
+        text-align: left;
+      }
     }
   </style>
+
   {% block extra_css %}{% endblock %}
 </head>
-<body>
-  <!-- 顶部导航栏 -->
-  <nav class="navbar navbar-inverse">
-    <div class="container">
-      <a class="navbar-brand" href="/">
-        <span>会议与人员管理系统</span>
-      </a>
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbarNav" aria-expanded="false" aria-label="切换导航">
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="nav navbar-nav navbar-right">
-          <li class="nav-item{% if request.path == '/' %} active{% endif %}">
-            <a class="nav-link" href="/"{% if request.path == '/' %} aria-current="page"{% endif %}>首页</a>
-          </li>
-          <li class="nav-item{% if request.path|slice:':10' == '/meetings/' or request.path == '/meetings' %} active{% endif %}">
-            <a class="nav-link" href="/meetings"{% if request.path|slice:':10' == '/meetings/' or request.path == '/meetings' %} aria-current="page"{% endif %}>会议管理</a>
-          </li>
-          <li class="nav-item{% if request.path|slice:':8' == '/people/' or request.path == '/people' %} active{% endif %}">
-            <a class="nav-link" href="/people"{% if request.path|slice:':8' == '/people/' or request.path == '/people' %} aria-current="page"{% endif %}>人员管理</a>
-          </li>
-          <li class="nav-item{% if request.path|slice:':13' == '/departments/' or request.path == '/departments' %} active{% endif %}">
-            <a class="nav-link" href="/departments"{% if request.path|slice:':13' == '/departments/' or request.path == '/departments' %} aria-current="page"{% endif %}>部门管理</a>
-          </li>
-          <li class="nav-item{% if request.path|slice:':15' == '/notifications/' or request.path == '/notifications' %} active{% endif %}">
-            <a class="nav-link" href="/notifications"{% if request.path|slice:':15' == '/notifications/' or request.path == '/notifications' %} aria-current="page"{% endif %}>通知中心</a>
-          </li>
+
+<body class="sidebar-gone">
+  <div id="app">
+    <div class="main-wrapper">
+      <!-- Navbar Background -->
+      <div class="navbar-bg"></div>
+
+      <!-- Top Navbar -->
+      <nav class="navbar main-navbar">
+        <ul class="navbar-nav navbar-right">
           {% if user.is_authenticated %}
           <li class="dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-              {{ user.username }} <span class="caret"></span>
+            <a href="#" data-toggle="dropdown" class="nav-link dropdown-toggle nav-link-lg nav-link-user" style="background:transparent !important;">
+              <div class="d-sm-none d-lg-inline-block" style="display:inline-block;">Hi, {{ user.username }}</div>
+              <span class="caret"></span>
             </a>
-            <ul class="dropdown-menu">
-              <li><a href="/profile/">个人中心</a></li>
-              <li><a href="/reminder-settings/">提醒设置</a></li>
+            <ul class="dropdown-menu dropdown-menu-right">
+              <li>
+                <a href="/profile/" class="dropdown-item has-icon">
+                  <i class="fas fa-user"></i> 个人中心
+                </a>
+              </li>
+              <li>
+                <a href="/reminder-settings/" class="dropdown-item has-icon">
+                  <i class="fas fa-bell"></i> 提醒设置
+                </a>
+              </li>
               <li role="separator" class="divider"></li>
               <li>
-                <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">退出登录</a>
+                <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="dropdown-item has-icon text-danger">
+                  <i class="fas fa-sign-out-alt"></i> 退出登录
+                </a>
               </li>
             </ul>
           </li>
           {% else %}
-          <li class="nav-item">
-            <a class="nav-link" href="/login/">登录</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/register/">注册</a>
-          </li>
+          <li><a href="/login/" class="nav-link"><i class="fas fa-sign-in-alt"></i> 登录</a></li>
+          <li><a href="/register/" class="nav-link"><i class="fas fa-user-plus"></i> 注册</a></li>
           {% endif %}
         </ul>
         {% if user.is_authenticated %}
@@ -107,13 +534,60 @@
           {% csrf_token %}
         </form>
         {% endif %}
+      </nav>
+
+      <!-- Sidebar -->
+      <div class="main-sidebar sidebar-style-2">
+        <aside id="sidebar-wrapper">
+          <div class="sidebar-brand">
+            <a href="/">会议管理系统</a>
+          </div>
+          <ul class="sidebar-menu">
+            <li class="{% if request.path == '/' %}active{% endif %}">
+              <a class="nav-link" href="/"><i class="fab fa-fort-awesome"></i> <span>首页</span></a>
+            </li>
+            <li class="menu-header">系统模块</li>
+            <li class="{% if request.path|slice:':10' == '/meetings/' or request.path == '/meetings' %}active{% endif %}">
+              <a class="nav-link" href="/meetings/"><i class="fas fa-calendar-alt"></i> <span>会议管理</span></a>
+            </li>
+            <li class="{% if request.path|slice:':8' == '/people/' or request.path == '/people' %}active{% endif %}">
+              <a class="nav-link" href="/people/"><i class="fas fa-users"></i> <span>人员管理</span></a>
+            </li>
+            <li class="{% if request.path|slice:':13' == '/departments/' or request.path == '/departments' %}active{% endif %}">
+              <a class="nav-link" href="/departments/"><i class="fas fa-sitemap"></i> <span>部门管理</span></a>
+            </li>
+            <li class="menu-header">工具</li>
+            <li class="{% if request.path|slice:':15' == '/notifications/' or request.path == '/notifications' %}active{% endif %}">
+              <a class="nav-link" href="/notifications/"><i class="fas fa-bell"></i> <span>通知中心</span></a>
+            </li>
+            {% if user.is_authenticated %}
+            <li class="{% if request.path == '/profile/' %}active{% endif %}">
+              <a class="nav-link" href="/profile/"><i class="fas fa-user-cog"></i> <span>个人中心</span></a>
+            </li>
+            <li class="{% if request.path == '/reminder-settings/' %}active{% endif %}">
+              <a class="nav-link" href="/reminder-settings/"><i class="fas fa-cog"></i> <span>提醒设置</span></a>
+            </li>
+            {% endif %}
+          </ul>
+        </aside>
       </div>
+
+      <!-- Main Content -->
+      <div class="main-content nx-dashboard">
+        <div class="nx-blob nx-blob--1"></div>
+        <div class="nx-blob nx-blob--2"></div>
+
+        {% block content %}{% endblock %}
+      </div>
+
+      <!-- Footer -->
+      <footer class="main-footer">
+        <div class="footer-left"></div>
+      </footer>
     </div>
-  </nav>
+  </div>
 
-  {% block content %}{% endblock %}
-
-  <!-- jQuery 和 Bootstrap 3 JS -->
+  <!-- jQuery & Bootstrap 3 JS -->
   <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
   {% block extra_js %}{% endblock %}

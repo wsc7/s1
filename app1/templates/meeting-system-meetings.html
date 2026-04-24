@@ -8,21 +8,145 @@
   .badge-status {
     font-size: 0.8rem;
   }
+  .meeting-view-tabs {
+    display: inline-flex;
+    border: 1px solid #d0d5dd;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-left: 12px;
+    vertical-align: middle;
+  }
+  .meeting-view-tabs a {
+    padding: 3px 14px;
+    font-size: 0.82rem;
+    color: #344054;
+    text-decoration: none;
+    background: #fff;
+    border-right: 1px solid #d0d5dd;
+    line-height: 1.8;
+    transition: background 0.15s;
+  }
+  .meeting-view-tabs a:last-child { border-right: none; }
+  .meeting-view-tabs a.active {
+    background: #f0f4ff;
+    color: #2c5fe6;
+    font-weight: 600;
+  }
+  .meeting-view-tabs a:hover:not(.active) { background: #f5f6fa; }
+  .meetings-page-shell {
+    position: relative;
+    width: 100%;
+    max-width: 1320px;
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding-right: 20px;
+  }
+  .meeting-stats-panel {
+    position: fixed;
+    top: 220px;
+    right: 80px;
+    width: 320px;
+  }
+  .meeting-stats-section + .meeting-stats-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eef2f6;
+  }
+  .meeting-stats-total {
+    color: #2f6fed;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .meeting-stats-total-label {
+    margin-top: 8px;
+    color: #667085;
+    font-size: 13px;
+  }
+  .meeting-stats-section-title {
+    margin-bottom: 12px;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .meeting-stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .meeting-stats-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #344054;
+  }
+  .meeting-stats-item strong {
+    color: #101828;
+    font-size: 18px;
+  }
+  .meeting-list-table {
+    width: 100%;
+    table-layout: fixed;
+  }
+  .meeting-list-table .meeting-col-title,
+  .meeting-list-table .meeting-col-location {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .meeting-list-table .meeting-col-count {
+    text-align: center;
+  }
+  .meeting-list-table .meeting-col-status,
+  .meeting-list-table .meeting-col-time,
+  .meeting-list-table .meeting-col-organizer,
+  .meeting-list-table .meeting-col-count {
+    white-space: nowrap;
+  }
+  .meeting-list-table .meeting-col-actions {
+    white-space: nowrap;
+  }
+  @media (max-width: 1399px) {
+    .meeting-list-table {
+      min-width: 1080px;
+      table-layout: auto;
+    }
+    .meeting-list-table .meeting-col-title,
+    .meeting-list-table .meeting-col-location {
+      white-space: normal;
+    }
+  }
+  @media (max-width: 1999px) {
+    .meetings-page-shell {
+      width: auto;
+      max-width: none;
+      padding-right: 0;
+    }
+    .meeting-stats-panel {
+      position: static;
+      width: auto;
+      margin-top: 16px;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
   <script type="application/json" id="meetings-organizers-json">{{ organizers_json|safe }}</script>
 
-  <main class="container my-4">
+  <main class="container my-4 page-shell meetings-page-shell">
     {% include "flash_messages.html" %}
     {% include "page_header.html" with page_title='会议管理' page_subtitle='支持会议的创建、查询、审批状态查看等操作。' page_header_inner_classes='flex-wrap gap-2' header_actions_template='meeting-system-meetings_header_actions.html' header_actions_classes='d-flex gap-2' %}
 
-
-    <div class="card mb-3">
+    <div class="card page-panel mb-3">
       <div class="card-body">
         <div class="form-section-title">查询条件</div>
-        <form method="get" action="" class="row g-3 align-items-end">
+        <form method="get" action="" class="row g-3 align-items-end filter-form">
+          <input type="hidden" name="view" value="{{ view_type }}">
           <div class="col-md-3">
             <label for="keyword" class="form-label">关键词（主题/发起人）</label>
             <input type="text" name="q" class="form-control" id="keyword" placeholder="请输入关键词" value="{{ request.GET.q|default:'' }}">
@@ -35,6 +159,7 @@
             <label for="status" class="form-label">会议状态</label>
             <select name="status" class="form-control" id="status">
               <option value="">全部</option>
+              <option value="draft" {% if request.GET.status == 'draft' %}selected{% endif %}>草稿</option>
               <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>待审批</option>
               <option value="approved_pending" {% if request.GET.status == 'approved_pending' %}selected{% endif %}>审批通过未开始</option>
               <option value="in_progress" {% if request.GET.status == 'in_progress' %}selected{% endif %}>进行中</option>
@@ -45,67 +170,111 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">&nbsp;</label>
-            <div class="clearfix">
-              <button type="submit" class="btn btn-primary" style="margin-right: 8px;">查询</button>
-              <a href="{% url 'meetings' %}" class="btn btn-default">重置</a>
+            <div class="filter-actions">
+              <button type="submit" class="btn btn-primary">查询</button>
+              <a href="{% url 'meetings' %}?view={{ view_type }}" class="btn btn-default">重置</a>
             </div>
           </div>
         </form>
       </div>
     </div>
 
-    <div class="card">
+    <div class="card page-panel">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="form-section-title mb-0">会议列表</span>
-          <small class="text-muted">数据来自数据库；上方可筛选。共 <strong>{{ meeting_list.paginator.count }}</strong> 条。也可 <a href="/admin/">管理后台</a> 维护。</small>
+        <div class="page-card-header">
+          <div>
+            <span class="form-section-title mb-0">
+              会议列表
+              <span class="meeting-view-tabs">
+                <a href="?view=all&q={{ request.GET.q|urlencode }}&date={{ request.GET.date|default:'' }}&status={{ request.GET.status|default:'' }}"
+                   class="{% if view_type != 'mine' %}active{% endif %}">所有会议</a>
+                <a href="?view=mine&q={{ request.GET.q|urlencode }}&date={{ request.GET.date|default:'' }}&status={{ request.GET.status|default:'' }}"
+                   class="{% if view_type == 'mine' %}active{% endif %}">我的会议</a>
+              </span>
+            </span>
+          </div>
         </div>
 
         <div class="table-responsive">
-          <table class="table align-middle mb-0">
+          <table class="table align-middle mb-0 meeting-list-table">
+            <colgroup>
+              <col style="width: 17%;">
+              <col style="width: 15%;">
+              <col style="width: 12%;">
+              <col style="width: 10%;">
+              <col style="width: 8%;">
+              <col style="width: 11%;">
+              <col style="width: 27%;">
+            </colgroup>
             <thead>
               <tr>
-                <th scope="col">会议主题</th>
-                <th scope="col">会议时间</th>
-                <th scope="col">地点</th>
-                <th scope="col">发起人</th>
-                <th scope="col">参会人数</th>
-                <th scope="col">状态</th>
-                <th scope="col" class="text-end">操作</th>
+                <th scope="col" class="meeting-col-title">会议主题</th>
+                <th scope="col" class="meeting-col-time">会议时间</th>
+                <th scope="col" class="meeting-col-location">地点</th>
+                <th scope="col" class="meeting-col-organizer">发起人</th>
+                <th scope="col" class="meeting-col-count">参会人数</th>
+                <th scope="col" class="meeting-col-status">状态</th>
+                <th scope="col" class="text-end meeting-col-actions">操作</th>
               </tr>
             </thead>
             <tbody>
               {% for m in meeting_list %}
               <tr>
-                <td>{{ m.title }}</td>
-                <td>{{ m.start_time|date:"Y-m-d H:i" }}</td>
-                <td>{{ m.location|default:"—" }}</td>
-                <td>{{ m.organizer.name|default:"—" }}</td>
-                <td>{{ m.attendee_count }}</td>
-                <td>
+                <td class="meeting-col-title">{{ m.title }}</td>
+                <td class="meeting-col-time">{{ m.start_time|date:"Y-m-d H:i" }}</td>
+                <td class="meeting-col-location">{{ m.location|default:"—" }}</td>
+                <td class="meeting-col-organizer">{{ m.organizer.name|default:"—" }}</td>
+                <td class="meeting-col-count">{{ m.attendee_count }}</td>
+                <td class="meeting-col-status">
                   <span class="badge badge-{{ m.status_badge_class }} badge-status">{{ m.get_status_display }}</span>
                 </td>
                 <td class="text-end">
-                  {% if m.status == 'pending' %}
-                  <span
-                    data-meeting-approval
-                    data-api-url="{% url 'api_meeting_approve' m.pk %}"
-                    data-meeting-title="{{ m.title|escape }}"
-                    data-status-label="{{ m.get_status_display }}"
-                  ></span>
+                  <div class="btn-action-group">
+                  {% if view_type == 'mine' %}
+                    {% if m.status == 'draft' or m.status == 'rejected' %}
+                      <form method="post" action="{% url 'meeting_apply' m.pk %}" onsubmit="return confirm('确定提交申请？');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-xs btn-primary">申请</button>
+                      </form>
+                      <a href="{% url 'meeting_detail' m.pk %}" class="btn btn-xs btn-default">纪要编辑</a>
+                      <form method="post" action="{% url 'meeting_delete' m.pk %}" onsubmit="return confirm('确定删除该会议？');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-xs btn-danger">删除</button>
+                      </form>
+                    {% else %}
+                      <button type="button" class="btn btn-xs btn-default" disabled title="仅草稿或未通过状态可申请">申请</button>
+                      <a href="{% url 'meeting_detail' m.pk %}" class="btn btn-xs btn-default">纪要编辑</a>
+                      <button type="button" class="btn btn-xs btn-danger" disabled title="仅草稿或未通过状态可删除">删除</button>
+                    {% endif %}
                   {% else %}
-                  <button type="button" class="btn btn-xs btn-default" disabled>审批</button>
+                    {% if m.status == 'pending' %}
+                    <span
+                      data-meeting-approval
+                      data-api-url="{% url 'api_meeting_approve' m.pk %}"
+                      data-meeting-title="{{ m.title|escape }}"
+                      data-status-label="{{ m.get_status_display }}"
+                    ></span>
+                    {% else %}
+                    <button type="button" class="btn btn-xs btn-default" disabled>审批</button>
+                    {% endif %}
+                    <a href="{% url 'meeting_detail' m.pk %}" class="btn btn-xs btn-default">编辑纪要</a>
+                    <form method="post" action="{% url 'meeting_delete' m.pk %}" onsubmit="return confirm('确定删除该会议？');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-xs btn-danger">删除</button>
+                    </form>
                   {% endif %}
-                  <a href="{% url 'meeting_detail' m.pk %}" class="btn btn-xs btn-default">编辑纪要</a>
-                  <form method="post" action="{% url 'meeting_delete' m.pk %}" class="inline-form-delete" onsubmit="return confirm('确定删除该会议？');">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-xs btn-danger">删除</button>
-                  </form>
+                  </div>
                 </td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="7" class="text-center text-muted">暂无会议记录，请点击上方「新建会议」或到 <a href="/admin/">管理后台</a> 添加。</td>
+                <td colspan="7" class="text-center text-muted">
+                  {% if view_type == 'mine' %}
+                    暂无您发起的会议，请点击上方「新建会议」创建。
+                  {% else %}
+                    暂无会议记录，请点击上方「新建会议」或到 <a href="/admin/">管理后台</a> 添加。
+                  {% endif %}
+                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -115,6 +284,102 @@
         {% include "pagination.html" with page_obj=meeting_list %}
       </div>
     </div>
+
+    <div class="card page-panel meeting-stats-panel">
+        <div class="card-body">
+          <div class="page-card-header">
+            <span class="form-section-title mb-0">会议统计</span>
+          </div>
+
+          {% if view_type == 'mine' %}
+          <div class="meeting-stats-section">
+            <div class="meeting-stats-total">{{ meeting_stats.mine_total }}</div>
+            <div class="meeting-stats-total-label">我的会议</div>
+          </div>
+
+          <div class="meeting-stats-section">
+            <div class="meeting-stats-section-title">我的会议</div>
+            <div class="meeting-stats-list">
+              <div class="meeting-stats-item">
+                <span>已申请</span>
+                <strong>{{ meeting_stats.mine_applied }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>草稿</span>
+                <strong>{{ meeting_stats.mine_draft }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-stats-section">
+            <div class="meeting-stats-section-title">已申请会议</div>
+            <div class="meeting-stats-list">
+              <div class="meeting-stats-item">
+                <span>待审批</span>
+                <strong>{{ meeting_stats.applied_pending }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>审批未通过</span>
+                <strong>{{ meeting_stats.applied_unapproved }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>审批通过</span>
+                <strong>{{ meeting_stats.applied_approved }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>过期</span>
+                <strong>{{ meeting_stats.applied_expired }}</strong>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="meeting-stats-section">
+            <div class="meeting-stats-total">{{ meeting_stats.total }}</div>
+            <div class="meeting-stats-total-label">会议总数</div>
+          </div>
+
+          <div class="meeting-stats-section">
+            <div class="meeting-stats-section-title">审批状态</div>
+            <div class="meeting-stats-list">
+              <div class="meeting-stats-item">
+                <span>待审批</span>
+                <strong>{{ meeting_stats.pending }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>审批未通过</span>
+                <strong>{{ meeting_stats.unapproved }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>审批通过</span>
+                <strong>{{ meeting_stats.approved }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>过期</span>
+                <strong>{{ meeting_stats.expired }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-stats-section">
+            <div class="meeting-stats-section-title">已通过会议</div>
+            <div class="meeting-stats-list">
+              <div class="meeting-stats-item">
+                <span>未开始</span>
+                <strong>{{ meeting_stats.approved_pending }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>开始</span>
+                <strong>{{ meeting_stats.in_progress }}</strong>
+              </div>
+              <div class="meeting-stats-item">
+                <span>结束</span>
+                <strong>{{ meeting_stats.done }}</strong>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
   </main>
 {% endblock %}
 

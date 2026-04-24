@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.dateparse import parse_date
@@ -96,20 +96,25 @@ def home(request):
 @login_required
 def meetings(request):
     Meeting.refresh_all_statuses()
-    qs = Meeting.objects.select_related('organizer').all()
+    all_meetings = Meeting.objects.select_related('organizer').all()
+    visible_meetings = all_meetings.exclude(status=Meeting.STATUS_DRAFT)
+    qs = visible_meetings
     q = request.GET.get('q', '').strip()
     date_str = request.GET.get('date', '').strip()
     status = request.GET.get('status', '').strip()
     view_type = request.GET.get('view', 'all').strip()
 
-    # 「我的会议」：仅展示当前用户发起的会议
-    current_person = None
+    all_stats_source = visible_meetings
+    mine_stats_source = Meeting.objects.none()
+
+    try:
+        current_person = request.user.person_profile
+        mine_stats_source = all_meetings.filter(organizer=current_person)
+    except Person.DoesNotExist:
+        current_person = None
+
     if view_type == 'mine':
-        try:
-            current_person = request.user.person_profile
-            qs = qs.filter(organizer=current_person)
-        except Person.DoesNotExist:
-            qs = qs.none()
+        qs = mine_stats_source
 
     if q:
         qs = qs.filter(Q(title__icontains=q) | Q(organizer__name__icontains=q))
@@ -126,6 +131,27 @@ def meetings(request):
         {'id': p.id, 'name': p.name}
         for p in Person.objects.order_by('name')
     ]
+    if view_type == 'mine':
+        meeting_stats = {
+            'mine_total': mine_stats_source.count(),
+            'mine_applied': mine_stats_source.exclude(status=Meeting.STATUS_DRAFT).count(),
+            'mine_draft': mine_stats_source.filter(status=Meeting.STATUS_DRAFT).count(),
+            'applied_pending': mine_stats_source.filter(status=Meeting.STATUS_PENDING).count(),
+            'applied_unapproved': mine_stats_source.filter(status=Meeting.STATUS_REJECTED).count(),
+            'applied_approved': mine_stats_source.filter(status__in=[Meeting.STATUS_APPROVED_PENDING, Meeting.STATUS_IN_PROGRESS, Meeting.STATUS_DONE]).count(),
+            'applied_expired': mine_stats_source.filter(status=Meeting.STATUS_EXPIRED_CANCELLED).count(),
+        }
+    else:
+        meeting_stats = {
+            'total': all_stats_source.count(),
+            'pending': all_stats_source.filter(status=Meeting.STATUS_PENDING).count(),
+            'unapproved': all_stats_source.filter(status=Meeting.STATUS_REJECTED).count(),
+            'approved': all_stats_source.filter(status__in=[Meeting.STATUS_APPROVED_PENDING, Meeting.STATUS_IN_PROGRESS, Meeting.STATUS_DONE]).count(),
+            'expired': all_stats_source.filter(status=Meeting.STATUS_EXPIRED_CANCELLED).count(),
+            'approved_pending': all_stats_source.filter(status=Meeting.STATUS_APPROVED_PENDING).count(),
+            'in_progress': all_stats_source.filter(status=Meeting.STATUS_IN_PROGRESS).count(),
+            'done': all_stats_source.filter(status=Meeting.STATUS_DONE).count(),
+        }
     return render(
         request,
         'meeting-system-meetings.html',
@@ -134,13 +160,14 @@ def meetings(request):
             'organizers_json': json.dumps(organizers, ensure_ascii=False),
             'view_type': view_type,
             'current_person': current_person,
+            'meeting_stats': meeting_stats,
         },
     )
 
 
 @login_required
 def people(request):
-    qs = Person.objects.all()
+    qs = Person.objects.select_related('department').all()
     q = request.GET.get('q', '').strip()
     department = request.GET.get('department', '').strip()
     role = request.GET.get('role', '').strip()
@@ -150,6 +177,19 @@ def people(request):
         qs = qs.filter(department__name__icontains=department)
     if role:
         qs = qs.filter(role__icontains=role)
+
+    people_stats_source = qs
+    people_stats = {
+        'total': people_stats_source.count(),
+    }
+    people_department_stats = list(
+        people_stats_source.exclude(department__isnull=True)
+        .values('department__name')
+        .annotate(count=Count('id'))
+        .order_by('-count', 'department__name')
+    )
+    people_unassigned_count = people_stats_source.filter(department__isnull=True).count()
+
     paginator = Paginator(qs, 10)
     page_number = request.GET.get('page')
     person_list = paginator.get_page(page_number)
@@ -167,6 +207,9 @@ def people(request):
             'person_list': person_list,
             'department_choices': department_choices,
             'role_choices': role_choices,
+            'people_stats': people_stats,
+            'people_department_stats': people_department_stats,
+            'people_unassigned_count': people_unassigned_count,
         },
     )
 
@@ -1082,6 +1125,11 @@ def departments(request):
     q = request.GET.get('q', '').strip()
     if q:
         qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+
+    department_stats = {
+        'total': qs.count(),
+    }
+
     paginator = Paginator(qs, 10)
     page_number = request.GET.get('page')
     department_list = paginator.get_page(page_number)
@@ -1091,6 +1139,7 @@ def departments(request):
         'meeting-system-departments.html',
         {
             'department_list': department_list,
+            'department_stats': department_stats,
         },
     )
 

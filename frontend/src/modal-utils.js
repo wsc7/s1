@@ -1,6 +1,10 @@
 import { createApp } from 'vue'
-import { getCsrfToken } from './csrf.js'
 import { getAccessToken } from './utils/request'
+
+const getCsrfToken = () => {
+  const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]*)/)
+  return match ? match[1] : null
+}
 
 export function toSpaApiUrl(url) {
   return url.replace(/^\/api\/v1/, '') || '/'

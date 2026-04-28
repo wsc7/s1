@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(python:*)",
       "Bash(git -C \"/c/Users/wsc/l12/s1\" status --short)",
@@ -19,7 +20,12 @@
       "Bash(mktemp)",
       "Bash(git:*)",
       "mcp__playwright__browser_console_messages",
-      "mcp__chrome-devtools__list_pages"
+      "mcp__chrome-devtools__list_pages",
+      "Bash(npm --version)",
+      "Bash(/c/Users/admin/s1/.runtime/mysql/mysql-8.4.6-winx64/bin/mysql.exe -h127.0.0.1 -P3306 -uroot -p123456 -e \"DROP DATABASE IF EXISTS mysql80; CREATE DATABASE mysql80 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\")",
+      "Bash(/c/Users/admin/s1/.venv/Scripts/python.exe /c/Users/admin/s1/manage.py migrate)",
+      "Bash(/c/Users/admin/s1/.venv/Scripts/python.exe *)"
     ]
-  }
+  },
+  "skipDangerousModePermissionPrompt": true
 }

@@ -1,5 +1,10 @@
 import { createApp } from 'vue'
 import { getCsrfToken } from './csrf.js'
+import { getAccessToken } from './utils/request'
+
+export function toSpaApiUrl(url) {
+  return url.replace(/^\/api\/v1/, '') || '/'
+}
 
 export function formatErrors(errors, labelMap = {}) {
   if (!errors || typeof errors !== 'object') {
@@ -13,18 +18,41 @@ export function formatErrors(errors, labelMap = {}) {
   return lines.join(' ') || '保存失败。'
 }
 
+function buildErrorMessage(data) {
+  if (!data || typeof data !== 'object') {
+    return '请求失败，请稍后重试。'
+  }
+  if (data.detail) {
+    return data.detail
+  }
+  if (data.errors) {
+    return formatErrors(data.errors)
+  }
+  return formatErrors(data)
+}
+
 export async function submitJson(url, { method = 'POST', body } = {}) {
   const token = getCsrfToken()
+  const accessToken = getAccessToken()
   const response = await fetch(url, {
     method,
     credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { 'X-CSRFToken': token } : {}),
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
     body: JSON.stringify(body),
   })
-  return response.json()
+  const text = await response.text()
+  const data = text ? JSON.parse(text) : {}
+  if (!response.ok) {
+    const error = new Error(buildErrorMessage(data))
+    error.response = response
+    error.data = data
+    throw error
+  }
+  return data
 }
 
 function onReady(callback) {

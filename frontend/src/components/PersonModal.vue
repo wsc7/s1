@@ -16,7 +16,7 @@
         <label>部门</label>
         <select v-model="form.department" class="form-control">
           <option value="">— 请选择部门 —</option>
-          <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+          <option v-for="dept in departmentOptions" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
         </select>
       </div>
       <div class="form-group">
@@ -32,6 +32,7 @@
         <input v-model="form.phone" type="text" class="form-control">
       </div>
 
+      <a :href="fullPageUrl" class="btn btn-link">或使用完整页面</a>
       <template #footer>
         <button type="button" class="btn btn-default" @click="close">取消</button>
         <button type="button" class="btn btn-primary" :disabled="submitting" @click="submit">
@@ -43,14 +44,19 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import ModalShell from './ModalShell.vue'
-import { formatErrors, submitJson } from '../modal-utils.js'
+import { formatErrors, submitJson, toSpaApiUrl } from '../modal-utils.js'
+import request from '../utils/request'
 
 const props = defineProps({
   apiUrl: { type: String, required: true },
   fullPageUrl: { type: String, default: '/people/add/' },
+  departments: { type: Array, default: () => [] },
+  useSpaApi: { type: Boolean, default: false },
 })
+
+const emit = defineEmits(['saved'])
 
 const show = ref(false)
 const submitting = ref(false)
@@ -64,16 +70,20 @@ const form = reactive({
   phone: '',
 })
 
-const departments = ref([])
+const loadedDepartments = ref([])
+const departmentOptions = computed(() => props.departments.length ? props.departments : loadedDepartments.value)
 
 async function fetchDepartments() {
+  if (props.departments.length) {
+    return
+  }
   try {
     const response = await fetch('/api/departments/', {
       credentials: 'same-origin'
     })
     if (response.ok) {
       const data = await response.json()
-      departments.value = data.departments || []
+      loadedDepartments.value = data.departments || []
     }
   } catch (e) {
     console.error('Failed to fetch departments:', e)
@@ -106,6 +116,13 @@ async function submit() {
   submitting.value = true
   errorMsg.value = ''
   try {
+    if (props.useSpaApi) {
+      await request.post(toSpaApiUrl(props.apiUrl), form)
+      emit('saved')
+      close()
+      return
+    }
+
     const data = await submitJson(props.apiUrl, {
       method: 'POST',
       body: form,
@@ -116,7 +133,7 @@ async function submit() {
     }
     errorMsg.value = formatErrors(data.errors)
   } catch (e) {
-    errorMsg.value = '网络错误，请稍后重试。'
+    errorMsg.value = e.message || '网络错误，请稍后重试。'
   } finally {
     submitting.value = false
   }

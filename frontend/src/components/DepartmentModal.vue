@@ -13,6 +13,7 @@
         <textarea v-model="form.description" class="form-control" rows="3"></textarea>
       </div>
 
+      <a :href="fullPageUrl" class="btn btn-link">或使用完整页面</a>
       <template #footer>
         <button type="button" class="btn btn-default" @click="close">取消</button>
         <button type="button" class="btn btn-primary" :disabled="submitting" @click="submit">
@@ -26,12 +27,16 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import ModalShell from './ModalShell.vue'
-import { formatErrors, submitJson } from '../modal-utils.js'
+import { formatErrors, submitJson, toSpaApiUrl } from '../modal-utils.js'
+import request from '../utils/request'
 
 const props = defineProps({
   apiUrl: { type: String, required: true },
   fullPageUrl: { type: String, default: '/departments/add/' },
+  useSpaApi: { type: Boolean, default: false },
 })
+
+const emit = defineEmits(['saved'])
 
 const show = ref(false)
 const submitting = ref(false)
@@ -62,6 +67,13 @@ async function submit() {
   submitting.value = true
   errorMsg.value = ''
   try {
+    if (props.useSpaApi) {
+      await request.post(toSpaApiUrl(props.apiUrl), form)
+      emit('saved')
+      close()
+      return
+    }
+
     const data = await submitJson(props.apiUrl, {
       method: 'POST',
       body: form,
@@ -72,7 +84,7 @@ async function submit() {
     }
     errorMsg.value = formatErrors(data.errors)
   } catch (e) {
-    errorMsg.value = '网络错误，请稍后重试。'
+    errorMsg.value = e.message || '网络错误，请稍后重试。'
   } finally {
     submitting.value = false
   }

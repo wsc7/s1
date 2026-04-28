@@ -10,6 +10,7 @@ from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.dateparse import parse_date
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 from django.core.mail import send_mail
 from django.conf import settings
@@ -86,6 +87,11 @@ def _create_meeting_approval_notification(meeting, *, approved, opinion):
         ),
         meeting=meeting,
     )
+
+
+@ensure_csrf_cookie
+def spa_shell(request, *args, **kwargs):
+    return render(request, 'spa.html')
 
 
 @login_required

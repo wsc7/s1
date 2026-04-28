@@ -1,22 +1,69 @@
 <template>
-  <div>
-    <nav v-if="showNav" class="navbar navbar-default navbar-static-top app-navbar">
-      <div class="container">
-        <div class="navbar-header">
-          <RouterLink class="navbar-brand" to="/meetings">会议与人员管理系统</RouterLink>
-        </div>
-        <ul class="nav navbar-nav">
-          <li><RouterLink to="/meetings">会议</RouterLink></li>
-          <li><RouterLink to="/people">人员</RouterLink></li>
-          <li><RouterLink to="/departments">部门</RouterLink></li>
-        </ul>
-        <ul class="nav navbar-nav navbar-right">
-          <li><a href="#" @click.prevent="handleLogout">退出登录</a></li>
-        </ul>
-      </div>
-    </nav>
+  <div class="app-root">
+    <template v-if="showNav">
+      <div class="main-wrapper">
+        <div class="navbar-bg"></div>
 
-    <main class="container app-main" :class="showNav ? 'app-main--with-nav' : 'app-main--login'">
+        <nav class="navbar main-navbar">
+          <ul class="navbar-nav navbar-right">
+            <li class="dropdown">
+              <a href="#" class="nav-link dropdown-toggle nav-link-lg nav-link-user" style="background:transparent !important;">
+                <div class="d-sm-none d-lg-inline-block" style="display:inline-block;">Hi, {{ currentUsername }}</div>
+              </a>
+            </li>
+            <li><a href="/profile/" class="nav-link">个人中心</a></li>
+            <li><a href="/reminder-settings/" class="nav-link">提醒设置</a></li>
+            <li><a href="#" class="nav-link" @click.prevent="handleLogout">退出</a></li>
+          </ul>
+        </nav>
+
+        <div class="main-sidebar sidebar-style-2">
+          <aside id="sidebar-wrapper">
+            <div class="sidebar-brand">
+              <RouterLink to="/">会议管理系统</RouterLink>
+            </div>
+            <ul class="sidebar-menu">
+              <li :class="{ active: route.path === '/' }">
+                <RouterLink class="nav-link" to="/"><i class="fab fa-fort-awesome"></i> <span>首页</span></RouterLink>
+              </li>
+              <li class="menu-header">系统模块</li>
+              <li :class="{ active: route.path.startsWith('/meetings') }">
+                <RouterLink class="nav-link" to="/meetings"><i class="fas fa-calendar-alt"></i> <span>会议管理</span></RouterLink>
+              </li>
+              <li :class="{ active: route.path.startsWith('/people') }">
+                <RouterLink class="nav-link" to="/people"><i class="fas fa-users"></i> <span>人员管理</span></RouterLink>
+              </li>
+              <li :class="{ active: route.path.startsWith('/departments') }">
+                <RouterLink class="nav-link" to="/departments"><i class="fas fa-sitemap"></i> <span>部门管理</span></RouterLink>
+              </li>
+              <li class="menu-header">工具</li>
+              <li>
+                <a class="nav-link" href="/notifications/"><i class="fas fa-bell"></i> <span>通知中心</span></a>
+              </li>
+              <li>
+                <a class="nav-link" href="/profile/"><i class="fas fa-user-cog"></i> <span>个人中心</span></a>
+              </li>
+              <li>
+                <a class="nav-link" href="/reminder-settings/"><i class="fas fa-cog"></i> <span>提醒设置</span></a>
+              </li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="main-content nx-dashboard">
+          <div class="nx-blob nx-blob--1"></div>
+          <div class="nx-blob nx-blob--2"></div>
+          <div v-if="globalError" class="alert alert-danger">{{ globalError }}</div>
+          <RouterView />
+        </div>
+
+        <footer class="main-footer">
+          <div class="footer-left"></div>
+        </footer>
+      </div>
+    </template>
+
+    <main v-else class="container app-main app-main--login">
       <div v-if="globalError" class="alert alert-danger">{{ globalError }}</div>
       <RouterView />
     </main>
@@ -24,15 +71,15 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import { computed, watch, ref } from 'vue'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 
 import request, { clearTokens, getAccessToken } from './utils/request'
 
 const route = useRoute()
-const router = useRouter()
 const globalError = ref('')
-const showNav = computed(() => route.path !== '/login')
+const currentUsername = ref('用户')
+const showNav = computed(() => !route.meta.public)
 
 const loadCurrentUser = async () => {
   if (!getAccessToken()) {
@@ -40,7 +87,8 @@ const loadCurrentUser = async () => {
   }
 
   try {
-    await request.get('/auth/me/')
+    const { data } = await request.get('/auth/me/')
+    currentUsername.value = data.username || data.name || '用户'
     globalError.value = ''
   } catch (error) {
     globalError.value = error.message || '获取当前用户信息失败。'
@@ -49,50 +97,36 @@ const loadCurrentUser = async () => {
 
 const handleLogout = () => {
   clearTokens()
-  router.push('/login')
+  window.location.href = '/logout/'
 }
 
-onMounted(() => {
-  loadCurrentUser()
-})
+watch(
+  () => route.path,
+  () => {
+    if (showNav.value) {
+      loadCurrentUser()
+    } else {
+      currentUsername.value = '用户'
+      globalError.value = ''
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style>
 body {
-  background: #f5f7fb;
-  color: #101828;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-.app-navbar {
-  margin-bottom: 0;
-  border-left: 0;
-  border-right: 0;
-  border-top: 0;
-  border-bottom: 1px solid #e4e7ec;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+.main-wrapper {
+  display: block;
 }
 
-.app-navbar .navbar-brand {
-  color: #101828 !important;
-  font-weight: 700;
-}
-
-.app-navbar .navbar-nav > li > a {
-  color: #344054;
-}
-
-.app-navbar .navbar-nav > li > a.router-link-active {
-  color: #2f6fed;
-  font-weight: 600;
-}
-
-.app-main {
+.main-content.nx-dashboard {
+  padding-right: 20px;
   padding-bottom: 28px;
-}
-
-.app-main--with-nav {
-  padding-top: 24px;
 }
 
 .app-main--login {
@@ -129,6 +163,18 @@ body {
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+.page-header__inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 2px;
+}
+
+.page-header__copy {
+  min-width: 0;
 }
 
 .page-header__title {
@@ -223,11 +269,25 @@ body {
   padding: 4px 8px;
 }
 
-@media (max-width: 767px) {
-  .app-main--with-nav {
-    padding-top: 16px;
+@media (max-width: 991px) {
+  .main-content.nx-dashboard {
+    padding-right: 15px;
   }
 
+  .page-header__inner,
+  .page-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .text-end,
+  .text-right,
+  .pagination-summary {
+    text-align: left;
+  }
+}
+
+@media (max-width: 767px) {
   .page-panel .panel-body {
     padding: 16px;
   }

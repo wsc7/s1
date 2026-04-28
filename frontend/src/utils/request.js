@@ -3,6 +3,14 @@ import axios from 'axios'
 const ACCESS_TOKEN_KEY = 'meeting_access_token'
 const REFRESH_TOKEN_KEY = 'meeting_refresh_token'
 
+const getCookie = (name) => {
+  const value = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith(`${name}=`))
+
+  return value ? decodeURIComponent(value.split('=').slice(1).join('=')) : ''
+}
+
 export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY)
 export const getRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY)
 
@@ -20,9 +28,18 @@ export const clearTokens = () => {
   localStorage.removeItem(REFRESH_TOKEN_KEY)
 }
 
+export const getSessionTokens = async () => {
+  const { data } = await axios.get('/api/v1/auth/session-token/', {
+    withCredentials: true,
+  })
+  setTokens(data)
+  return data
+}
+
 const request = axios.create({
   baseURL: '/api/v1',
   timeout: 10000,
+  withCredentials: true,
 })
 
 let isRefreshing = false
@@ -38,6 +55,15 @@ request.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  const method = (config.method || 'get').toLowerCase()
+  if (['post', 'put', 'patch', 'delete'].includes(method)) {
+    const csrfToken = getCookie('csrftoken')
+    if (csrfToken) {
+      config.headers['X-CSRFToken'] = csrfToken
+    }
+  }
+
   return config
 })
 
@@ -76,11 +102,14 @@ request.interceptors.response.use(
       }
     }
 
-    const detail = error.response?.data?.detail
-    const fieldErrors = error.response?.data
-    const message = detail || (typeof fieldErrors === 'object' ? JSON.stringify(fieldErrors) : '') || '请求失败，请稍后重试。'
+    const data = error.response?.data
+    const detail = data?.detail
+    const message = detail || (typeof data === 'object' ? Object.entries(data).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join('，') : value}`).join('；') : '') || '请求失败，请稍后重试。'
 
-    return Promise.reject(new Error(message))
+    const wrappedError = new Error(message)
+    wrappedError.response = error.response
+    wrappedError.data = data
+    return Promise.reject(wrappedError)
   },
 )
 

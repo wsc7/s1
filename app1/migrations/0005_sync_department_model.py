@@ -4,6 +4,27 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+def create_departments(apps, schema_editor):
+    Department = apps.get_model('app1', 'Department')
+    Person = apps.get_model('app1', 'Person')
+
+    department_names = [
+        name for name in Person.objects.values_list('department', flat=True).distinct()
+        if name
+    ]
+    department_map = {
+        name: Department.objects.get_or_create(name=name)[0].id
+        for name in department_names
+    }
+
+    for person in Person.objects.all():
+        department_id = department_map.get(person.department)
+        if department_id:
+            Person.objects.filter(pk=person.pk).update(department=str(department_id))
+        else:
+            Person.objects.filter(pk=person.pk).update(department='')
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -26,6 +47,7 @@ class Migration(migrations.Migration):
                 'ordering': ['name'],
             },
         ),
+        migrations.RunPython(create_departments, migrations.RunPython.noop),
         migrations.AlterField(
             model_name='person',
             name='department',

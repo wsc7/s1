@@ -26,12 +26,16 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import ModalShell from './ModalShell.vue'
-import { formatErrors, submitJson } from '../modal-utils.js'
+import { formatErrors, submitJson, toSpaApiUrl } from '../modal-utils.js'
+import request from '../utils/request'
 
 const props = defineProps({
   departmentId: { type: [String, Number], required: true },
   apiUrl: { type: String, required: true },
+  useSpaApi: { type: Boolean, default: false },
 })
+
+const emit = defineEmits(['saved'])
 
 const show = ref(false)
 const submitting = ref(false)
@@ -53,6 +57,15 @@ function close() {
 
 async function loadDepartmentData() {
   try {
+    if (props.useSpaApi) {
+      const { data: departmentData } = await request.get(`${toSpaApiUrl(props.apiUrl)}${props.departmentId}/`)
+      Object.assign(form, {
+        name: departmentData.name || '',
+        description: departmentData.description || '',
+      })
+      return
+    }
+
     const response = await fetch(`${props.apiUrl}${props.departmentId}/`, {
       credentials: 'same-origin',
     })
@@ -78,6 +91,13 @@ async function submit() {
   submitting.value = true
   errorMsg.value = ''
   try {
+    if (props.useSpaApi) {
+      await request.patch(`${toSpaApiUrl(props.apiUrl)}${props.departmentId}/`, form)
+      emit('saved')
+      close()
+      return
+    }
+
     const data = await submitJson(`${props.apiUrl}${props.departmentId}/update/`, {
       method: 'PUT',
       body: form,
@@ -88,7 +108,7 @@ async function submit() {
     }
     errorMsg.value = formatErrors(data.errors)
   } catch (e) {
-    errorMsg.value = '网络错误，请稍后重试。'
+    errorMsg.value = e.message || '网络错误，请稍后重试。'
   } finally {
     submitting.value = false
   }

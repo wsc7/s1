@@ -1,8 +1,15 @@
 <template>
-  <div class="page-shell">
+  <div class="page-shell departments-page-shell">
     <div class="page-header">
-      <h2 class="page-header__title">部门管理</h2>
-      <span class="page-header__subtitle">维护部门基本信息。</span>
+      <div class="page-header__inner">
+        <div class="page-header__copy">
+          <h2 class="page-header__title">部门管理</h2>
+          <span class="page-header__subtitle">维护部门基本信息。</span>
+        </div>
+        <div class="d-flex gap-2">
+          <DepartmentModal api-url="/api/v1/departments/" :use-spa-api="true" @saved="refreshDepartments" />
+        </div>
+      </div>
     </div>
 
     <div class="panel panel-default page-panel">
@@ -25,41 +32,81 @@
     </div>
 
     <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+    <div v-if="successMessage" class="alert alert-success">{{ successMessage }}</div>
     <div v-if="loading" class="text-muted">加载中...</div>
 
-    <div v-else class="panel panel-default page-panel">
-      <div class="panel-body">
-        <div class="page-card-header">
-          <span class="form-section-title mb-0">部门列表</span>
-        </div>
+    <div v-else class="departments-content-grid">
+      <div class="panel panel-default page-panel">
+        <div class="panel-body">
+          <div class="page-card-header">
+            <span class="form-section-title mb-0">部门列表</span>
+          </div>
 
-        <div class="table-responsive">
-          <table v-if="departments.length" class="table table-striped align-middle mb-0">
-            <thead>
-              <tr>
-                <th>部门名称</th>
-                <th>描述</th>
-                <th>创建时间</th>
-                <th>更新时间</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="department in departments" :key="department.id">
-                <td>{{ department.name }}</td>
-                <td>{{ department.description || '—' }}</td>
-                <td>{{ formatDateTime(department.created_at) }}</td>
-                <td>{{ formatDateTime(department.updated_at) }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div v-else class="text-center text-muted" style="padding: 24px 12px;">暂无部门记录。</div>
-        </div>
+          <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>部门名称</th>
+                  <th>描述</th>
+                  <th>创建时间</th>
+                  <th>更新时间</th>
+                  <th class="text-end">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="department in departments" :key="department.id">
+                  <td>{{ department.name }}</td>
+                  <td>{{ truncateDescription(department.description) }}</td>
+                  <td>{{ department.created_at_display || formatDateTime(department.created_at) }}</td>
+                  <td>{{ department.updated_at_display || formatDateTime(department.updated_at) }}</td>
+                  <td class="text-end action-cell">
+                    <DepartmentEditModal
+                      :department-id="department.id"
+                      api-url="/api/v1/departments/"
+                      :use-spa-api="true"
+                      @saved="refreshDepartments"
+                    />
+                    <button type="button" class="btn btn-xs btn-danger" @click="deleteDepartment(department)">删除</button>
+                  </td>
+                </tr>
+                <tr v-if="!departments.length">
+                  <td colspan="5" class="text-center text-muted">暂无部门记录，请点击上方「新增部门」添加。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-        <div class="clearfix pagination-shell">
-          <div class="pull-left pagination-summary">共 {{ total }} 条，当前第 {{ page }} 页</div>
-          <div class="pull-right">
-            <button class="btn btn-default" :disabled="!previous" @click="changePage(page - 1)">上一页</button>
-            <button class="btn btn-default" style="margin-left: 8px;" :disabled="!next" @click="changePage(page + 1)">下一页</button>
+          <nav v-if="total > 0" class="pagination-shell">
+            <ul v-if="pageRange.length > 1" class="pagination pagination-sm pull-right mb-0">
+              <li :class="{ disabled: !previous }">
+                <a v-if="previous" href="#" @click.prevent="changePage(page - 1)">上一页</a>
+                <span v-else>上一页</span>
+              </li>
+              <li v-for="p in pageRange" :key="p" :class="{ active: p === page }">
+                <a v-if="p !== page" href="#" @click.prevent="changePage(p)">{{ p }}</a>
+                <span v-else>{{ p }}</span>
+              </li>
+              <li :class="{ disabled: !next }">
+                <a v-if="next" href="#" @click.prevent="changePage(page + 1)">下一页</a>
+                <span v-else>下一页</span>
+              </li>
+            </ul>
+            <div class="clearfix"></div>
+            <div class="pagination-summary">
+              显示第 {{ startIndex }} - {{ endIndex }} 条，共 {{ total }} 条记录
+            </div>
+          </nav>
+        </div>
+      </div>
+
+      <div class="panel panel-default page-panel department-stats-panel">
+        <div class="panel-body">
+          <div class="page-card-header">
+            <span class="form-section-title mb-0">部门统计</span>
+          </div>
+          <div class="department-stats-section">
+            <div class="department-stats-total">{{ total }}</div>
+            <div class="department-stats-total-label">部门总数</div>
           </div>
         </div>
       </div>
@@ -68,13 +115,16 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
+import DepartmentEditModal from '../components/DepartmentEditModal.vue'
+import DepartmentModal from '../components/DepartmentModal.vue'
 import request from '../utils/request'
 
 const departments = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
+const successMessage = ref('')
 const total = ref(0)
 const page = ref(1)
 const next = ref(null)
@@ -83,9 +133,19 @@ const filters = reactive({
   search: '',
 })
 
+const pageSize = 10
+const pageRange = computed(() => {
+  const totalPages = Math.ceil(total.value / pageSize) || 1
+  const pages = []
+  for (let i = 1; i <= totalPages; i++) pages.push(i)
+  return pages
+})
+const startIndex = computed(() => total.value === 0 ? 0 : (page.value - 1) * pageSize + 1)
+const endIndex = computed(() => Math.min(page.value * pageSize, total.value))
+
 const buildParams = () => ({
   page: page.value,
-  search: filters.search || undefined,
+  q: filters.search || undefined,
 })
 
 const formatDateTime = (value) => {
@@ -94,6 +154,13 @@ const formatDateTime = (value) => {
   }
 
   return value.slice(0, 16).replace('T', ' ')
+}
+
+const truncateDescription = (value) => {
+  if (!value) {
+    return '—'
+  }
+  return value.length > 50 ? `${value.slice(0, 49)}…` : value
 }
 
 const fetchDepartments = async () => {
@@ -113,13 +180,20 @@ const fetchDepartments = async () => {
   }
 }
 
+const refreshDepartments = () => {
+  successMessage.value = '部门信息已更新。'
+  fetchDepartments()
+}
+
 const searchDepartments = () => {
+  successMessage.value = ''
   page.value = 1
   fetchDepartments()
 }
 
 const resetFilters = () => {
   filters.search = ''
+  successMessage.value = ''
   page.value = 1
   fetchDepartments()
 }
@@ -128,11 +202,86 @@ const changePage = (targetPage) => {
   if (targetPage < 1) {
     return
   }
+  successMessage.value = ''
   page.value = targetPage
   fetchDepartments()
+}
+
+const deleteDepartment = async (department) => {
+  if (!window.confirm('确定删除该部门？如果该部门下有人员，将无法删除。')) {
+    return
+  }
+
+  try {
+    await request.delete(`/departments/${department.id}/`)
+    successMessage.value = '部门已删除。'
+    fetchDepartments()
+  } catch (error) {
+    errorMessage.value = error.message || '删除部门失败。'
+  }
 }
 
 onMounted(() => {
   fetchDepartments()
 })
 </script>
+
+<style scoped>
+.departments-page-shell {
+  position: relative;
+  width: 100%;
+  max-width: 1320px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding-right: 360px;
+}
+
+.departments-content-grid {
+  display: block;
+}
+
+.department-stats-panel {
+  position: fixed;
+  top: 220px;
+  right: 80px;
+  width: 320px;
+}
+
+.department-stats-section + .department-stats-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eef2f6;
+}
+
+.department-stats-total {
+  color: #2f6fed;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.department-stats-total-label {
+  margin-top: 8px;
+  color: #667085;
+  font-size: 13px;
+}
+
+.action-cell .btn + .btn,
+.action-cell .vue-toolbar + .btn {
+  margin-left: 6px;
+}
+
+@media (max-width: 1199px) {
+  .departments-page-shell {
+    width: auto;
+    max-width: none;
+    padding-right: 0;
+  }
+
+  .department-stats-panel {
+    position: static;
+    width: auto;
+    margin-top: 16px;
+  }
+}
+</style>

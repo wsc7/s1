@@ -38,6 +38,7 @@
         <textarea v-model="form.description" class="form-control" rows="3"></textarea>
       </div>
 
+      <a :href="fullPageUrl" class="btn btn-link">或使用完整页面</a>
       <template #footer>
         <button type="button" class="btn btn-default" @click="close">取消</button>
         <button type="button" class="btn btn-default" :disabled="!!submitting" @click="submit('draft')">
@@ -54,16 +55,19 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import ModalShell from './ModalShell.vue'
-import { formatErrors, submitJson } from '../modal-utils.js'
+import { formatErrors, submitJson, toSpaApiUrl } from '../modal-utils.js'
+import request from '../utils/request'
 
 const props = defineProps({
   apiUrl: { type: String, required: true },
   fullPageUrl: { type: String, default: '/meetings/add/' },
   organizers: { type: Array, default: () => [] },
+  useSpaApi: { type: Boolean, default: false },
 })
 
+const emit = defineEmits(['saved'])
+
 const show = ref(false)
-// submitting 存储当前正在提交的动作名（'draft' | 'pending' | false）
 const submitting = ref(false)
 const errorMsg = ref('')
 const form = reactive({
@@ -91,11 +95,14 @@ function open() {
 }
 
 function close() {
+  if (submitting.value) {
+    return
+  }
   show.value = false
 }
 
 function buildPayload(status) {
-  const body = {
+  return {
     title: form.title,
     location: form.location,
     attendee_count: form.attendee_count || 0,
@@ -103,14 +110,10 @@ function buildPayload(status) {
     description: form.description,
     start_time: form.start_time,
     end_time: form.end_time,
-    organizer: form.organizer || '',
+    organizer: form.organizer || null,
   }
-  return body
 }
 
-/**
- * @param {'draft'|'pending'} status - 保存草稿传 'draft'，申请审批传 'pending'
- */
 async function submit(status) {
   if (!form.title.trim() || !form.start_time || !form.end_time) {
     errorMsg.value = '请填写主题、开始时间与结束时间。'
@@ -119,6 +122,13 @@ async function submit(status) {
   submitting.value = status
   errorMsg.value = ''
   try {
+    if (props.useSpaApi) {
+      await request.post(toSpaApiUrl(props.apiUrl), buildPayload(status))
+      emit('saved')
+      show.value = false
+      return
+    }
+
     const data = await submitJson(props.apiUrl, {
       method: 'POST',
       body: buildPayload(status),
@@ -129,7 +139,7 @@ async function submit(status) {
     }
     errorMsg.value = formatErrors(data.errors)
   } catch (e) {
-    errorMsg.value = '网络错误，请稍后重试。'
+    errorMsg.value = e.message || '网络错误，请稍后重试。'
   } finally {
     submitting.value = false
   }

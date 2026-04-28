@@ -16,7 +16,7 @@
         <label>部门</label>
         <select v-model="form.department" class="form-control">
           <option value="">— 请选择部门 —</option>
-          <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+          <option v-for="dept in departmentOptions" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
         </select>
       </div>
       <div class="form-group">
@@ -43,14 +43,19 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import ModalShell from './ModalShell.vue'
-import { formatErrors, submitJson } from '../modal-utils.js'
+import { formatErrors, submitJson, toSpaApiUrl } from '../modal-utils.js'
+import request from '../utils/request'
 
 const props = defineProps({
   personId: { type: [String, Number], required: true },
   apiUrl: { type: String, required: true },
+  departments: { type: Array, default: () => [] },
+  useSpaApi: { type: Boolean, default: false },
 })
+
+const emit = defineEmits(['saved'])
 
 const show = ref(false)
 const submitting = ref(false)
@@ -64,16 +69,20 @@ const form = reactive({
   phone: '',
 })
 
-const departments = ref([])
+const loadedDepartments = ref([])
+const departmentOptions = computed(() => props.departments.length ? props.departments : loadedDepartments.value)
 
 async function fetchDepartments() {
+  if (props.departments.length) {
+    return
+  }
   try {
     const response = await fetch('/api/departments/', {
       credentials: 'same-origin'
     })
     if (response.ok) {
       const data = await response.json()
-      departments.value = data.departments || []
+      loadedDepartments.value = data.departments || []
     }
   } catch (e) {
     console.error('Failed to fetch departments:', e)
@@ -93,6 +102,19 @@ function close() {
 
 async function loadPersonData() {
   try {
+    if (props.useSpaApi) {
+      const { data: personData } = await request.get(`${toSpaApiUrl(props.apiUrl)}${props.personId}/`)
+      Object.assign(form, {
+        name: personData.name || '',
+        employee_no: personData.employee_no || '',
+        department: personData.department || '',
+        position: personData.position || '',
+        role: personData.role || '',
+        phone: personData.phone || '',
+      })
+      return
+    }
+
     const response = await fetch(`/api/people/${props.personId}/`, {
       credentials: 'same-origin',
     })
@@ -122,6 +144,13 @@ async function submit() {
   submitting.value = true
   errorMsg.value = ''
   try {
+    if (props.useSpaApi) {
+      await request.patch(`${toSpaApiUrl(props.apiUrl)}${props.personId}/`, form)
+      emit('saved')
+      close()
+      return
+    }
+
     const data = await submitJson(`${props.apiUrl}${props.personId}/update/`, {
       method: 'PUT',
       body: form,
@@ -132,7 +161,7 @@ async function submit() {
     }
     errorMsg.value = formatErrors(data.errors)
   } catch (e) {
-    errorMsg.value = '网络错误，请稍后重试。'
+    errorMsg.value = e.message || '网络错误，请稍后重试。'
   } finally {
     submitting.value = false
   }

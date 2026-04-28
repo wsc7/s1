@@ -29,13 +29,17 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import ModalShell from './ModalShell.vue'
-import { formatErrors, submitJson } from '../modal-utils.js'
+import { formatErrors, submitJson, toSpaApiUrl } from '../modal-utils.js'
+import request from '../utils/request'
 
 const props = defineProps({
   apiUrl: { type: String, required: true },
   meetingTitle: { type: String, required: true },
   statusLabel: { type: String, default: '待审批' },
+  useSpaApi: { type: Boolean, default: false },
 })
+
+const emit = defineEmits(['saved'])
 
 const show = ref(false)
 const submitting = ref(false)
@@ -61,6 +65,16 @@ async function submit(action) {
   submitting.value = true
   errorMsg.value = ''
   try {
+    if (props.useSpaApi) {
+      await request.post(toSpaApiUrl(props.apiUrl), {
+        action,
+        opinion: form.opinion,
+      })
+      emit('saved')
+      close()
+      return
+    }
+
     const data = await submitJson(props.apiUrl, {
       method: 'POST',
       body: {
@@ -77,8 +91,8 @@ async function submit(action) {
       opinion: '意见',
       _: '审批',
     })
-  } catch {
-    errorMsg.value = '网络错误，请稍后重试。'
+  } catch (e) {
+    errorMsg.value = e.message || '网络错误，请稍后重试。'
   } finally {
     submitting.value = false
   }

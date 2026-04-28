@@ -1,0 +1,196 @@
+<template>
+  <section class="section dashboard-section">
+    <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+    <div v-if="loading" class="text-muted">加载中...</div>
+
+    <template v-else>
+      <div class="nx-greeting-bar nx-greeting-bar--compact">
+        <div>
+          <h1 class="nx-greeting__title">首页</h1>
+          <p class="nx-greeting__sub">欢迎回来，{{ dashboard.username || '用户' }}</p>
+          <div class="nx-identity-row">
+            <span class="nx-id-chip"><i class="fas fa-shield-alt"></i> 管理员</span>
+            <span class="nx-id-chip"><i class="far fa-clock"></i> 系统在线</span>
+            <span class="nx-id-chip"><i class="far fa-calendar-alt"></i> {{ dashboard.current_date || '运行中' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="nx-stats">
+        <div class="nx-stat nx-stat--membership">
+          <div class="nx-stat__icon"><i class="fas fa-users"></i></div>
+          <div class="nx-stat__label">人员总数</div>
+          <div class="nx-stat__value">{{ dashboard.person_count }}<small> 人</small></div>
+          <div class="nx-stat__meta">
+            <span class="nx-plan-badge">人员库</span>
+            <span>活跃管理中</span>
+          </div>
+        </div>
+
+        <div class="nx-stat nx-stat--traffic">
+          <div class="nx-stat__icon"><i class="fas fa-handshake"></i></div>
+          <div class="nx-stat__label">会议总数</div>
+          <div class="nx-stat__value">{{ dashboard.meeting_count }}<small> 场</small></div>
+          <div class="nx-stat__meta">
+            <i class="fas fa-chart-line"></i>
+            <span>全生命周期覆盖</span>
+          </div>
+        </div>
+
+        <div class="nx-stat nx-stat--devices">
+          <div class="nx-stat__icon"><i class="fas fa-sitemap"></i></div>
+          <div class="nx-stat__label">组织架构</div>
+          <div class="nx-stat__value">就绪</div>
+          <div class="nx-stat__meta">
+            <i class="fas fa-cog"></i>
+            <span>部门结构维护中</span>
+          </div>
+        </div>
+
+        <div class="nx-stat nx-stat--wallet">
+          <div class="nx-stat__icon"><i class="fas fa-bell"></i></div>
+          <div class="nx-stat__label">通知提醒</div>
+          <div class="nx-stat__value">活跃</div>
+          <div class="nx-stat__meta">
+            <i class="fas fa-envelope"></i>
+            <span>智能会议提醒已开启</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="nx-content-grid">
+        <div>
+          <div class="nx-card nx-card--announcement">
+            <div class="nx-card__header">
+              <div class="nx-card__icon"><i class="fas fa-bullhorn"></i></div>
+              <h4 class="nx-card__title">系统公告</h4>
+            </div>
+            <div class="nx-card__body">
+              <p>尊敬的用户：</p>
+              <p>您好，欢迎使用<strong>会议与人员管理系统</strong>。本系统为您提供以下核心功能：</p>
+              <ul>
+                <li><strong>会议全流程管理</strong> — 覆盖会前申请审批、会中记录、会后纪要归档的闭环管理。</li>
+                <li><strong>人员与角色管理</strong> — 集中维护人员信息、部门结构与角色认证机制。</li>
+                <li><strong>通知与提醒</strong> — 智能的会议通知分发与定时提醒，确保重要信息及时传达。</li>
+              </ul>
+              <p>系统持续优化中，祝您使用愉快！</p>
+            </div>
+          </div>
+
+          <div id="vue-meeting-root"></div>
+        </div>
+
+        <div>
+          <div class="nx-card">
+            <div class="nx-card__header">
+              <div class="nx-card__icon nx-card__icon--cyan"><i class="fas fa-bolt"></i></div>
+              <h4 class="nx-card__title">快速导航</h4>
+            </div>
+            <div class="nx-card__body">
+              <div class="nx-quick-links">
+                <RouterLink to="/meetings" class="nx-quick-link">
+                  <i class="fas fa-calendar-alt" style="color:var(--nx-primary)"></i> 进入会议管理
+                </RouterLink>
+                <RouterLink to="/people" class="nx-quick-link">
+                  <i class="fas fa-users" style="color:var(--nx-emerald)"></i> 进入人员管理
+                </RouterLink>
+                <RouterLink to="/departments" class="nx-quick-link">
+                  <i class="fas fa-sitemap" style="color:var(--nx-cyan)"></i> 进入部门管理
+                </RouterLink>
+                <a href="/notifications/" class="nx-quick-link">
+                  <i class="fas fa-bell" style="color:var(--nx-amber)"></i> 进入通知中心
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </section>
+</template>
+
+<script setup>
+import { onMounted, reactive, ref } from 'vue'
+import { RouterLink } from 'vue-router'
+
+import request from '../utils/request'
+
+const loading = ref(false)
+const errorMessage = ref('')
+const dashboard = reactive({
+  username: '',
+  current_date: '',
+  person_count: 0,
+  meeting_count: 0,
+})
+
+const fetchDashboard = async () => {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const { data } = await request.get('/dashboard/')
+    Object.assign(dashboard, data)
+  } catch (error) {
+    errorMessage.value = error.message || '首页数据加载失败。'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchDashboard()
+})
+</script>
+
+<style scoped>
+.dashboard-section {
+  padding-top: 18px;
+  padding-bottom: 20px;
+}
+
+.nx-greeting-bar--compact {
+  margin-bottom: 18px;
+  padding: 20px 22px;
+}
+
+.nx-greeting-bar--compact .nx-greeting__title {
+  margin-bottom: 4px;
+}
+
+.nx-greeting-bar--compact .nx-greeting__sub {
+  margin-bottom: 10px;
+}
+
+.nx-stats {
+  margin-bottom: 18px;
+}
+
+.nx-stat {
+  min-height: 0;
+}
+
+.nx-stat__label {
+  margin-bottom: 4px;
+}
+
+.nx-stat__value {
+  margin-bottom: 8px;
+}
+
+.nx-card__body p:last-child,
+.nx-card__body ul:last-child {
+  margin-bottom: 0;
+}
+
+.nx-card__body ul {
+  padding-left: 18px;
+  margin-bottom: 10px;
+}
+
+.nx-quick-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+</style>

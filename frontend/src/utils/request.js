@@ -67,12 +67,26 @@ request.interceptors.request.use((config) => {
   return config
 })
 
+const TOKEN_INVALID_PREFIX = 'Given token not valid for any token type'
+
+const forceLogout = () => {
+  clearTokens()
+  window.location.href = '/login'
+}
+
 request.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config || {}
     const refreshToken = getRefreshToken()
     const status = error.response?.status
+    const detail = (error.response?.data?.detail || '').toString()
+
+    // Token type mismatch (e.g. refresh token used as access token) — clear and re-login
+    if (detail.startsWith(TOKEN_INVALID_PREFIX)) {
+      forceLogout()
+      return Promise.reject(error)
+    }
 
     if (status === 401 && refreshToken && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh/')) {
       originalRequest._retry = true
@@ -94,8 +108,7 @@ request.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${data.access}`
         return request(originalRequest)
       } catch (refreshError) {
-        clearTokens()
-        window.location.href = '/login'
+        forceLogout()
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
@@ -103,7 +116,6 @@ request.interceptors.response.use(
     }
 
     const data = error.response?.data
-    const detail = data?.detail
     const message = detail || (typeof data === 'object' ? Object.entries(data).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join('，') : value}`).join('；') : '') || '请求失败，请稍后重试。'
 
     const wrappedError = new Error(message)
